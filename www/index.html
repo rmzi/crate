@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <title>Crate</title>
+  <link rel="icon" type="image/png" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="manifest" href="/app.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Bebas+Neue&family=Special+Elite&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="main.css">
+  <!-- Google Analytics (configure in site.config.js) -->
+  <script type="module">
+    import { SITE } from './js/site.config.js';
+    if (SITE.gaTrackingId) {
+      const s = document.createElement('script');
+      s.async = true;
+      s.src = `https://www.googletagmanager.com/gtag/js?id=${SITE.gaTrackingId}`;
+      document.head.appendChild(s);
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function(){dataLayer.push(arguments);};
+      gtag('js', new Date());
+      gtag('config', SITE.gaTrackingId);
+    }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <div id="offline-indicator" class="offline-indicator hidden">OFFLINE</div>
+    <!-- Persistent title that animates between screens -->
+    <h1 id="title-logo" class="title-logo">Crate<span class="sparkles"></span></h1>
+
+    <!-- Enter screen -->
+    <div id="enter-screen" class="screen active">
+      <div class="enter-content">
+        <div id="konami-progress" class="konami-progress">
+          <span class="konami-arrow">■</span>
+          <span class="konami-arrow">■</span>
+          <span class="konami-arrow">■</span>
+          <span class="konami-arrow">■</span>
+          <span class="konami-arrow">■</span>
+          <span class="konami-arrow">■</span>
+          <span class="konami-arrow">■</span>
+          <span class="konami-arrow">■</span>
+        </div>
+        <button id="enter-btn">ENTER</button>
+      </div>
+    </div>
+
+    <!-- Player screen -->
+    <div id="player-screen" class="screen">
+      <div class="download-indicator" id="download-indicator">↓ PULL TO SAVE</div>
+      <h1 class="player-title">Crate</h1>
+      <div class="player-container">
+        <!-- Album artwork -->
+        <div id="artwork-container" class="artwork-container no-art">
+          <img id="artwork-image" src="" alt="" class="artwork-image">
+        </div>
+
+        <!-- Right side wrapper for desktop layout -->
+        <div class="player-right">
+          <!-- Track info - streaming app style -->
+          <div class="track-info-wrapper">
+            <div id="track-info" class="track-info">
+              <span id="title" class="track-title">---</span>
+              <span id="artist" class="track-artist">---</span>
+              <span class="track-meta">
+                <span id="album">---</span>
+                <span class="meta-dot">·</span>
+                <span id="year">---</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Progress bar -->
+          <div id="progress-container" class="progress-container">
+            <div id="progress-bar" class="progress-bar"></div>
+          </div>
+
+          <!-- Time display -->
+          <div class="time-display">
+            <span id="current-time">0:00</span>
+            <span id="duration">0:00</span>
+          </div>
+
+          <!-- Controls row: Back | Play | Next -->
+          <div class="controls">
+            <button id="back-btn" class="control-btn icon-btn" disabled aria-label="Previous">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+            </button>
+            <button id="play-pause-btn" class="control-btn icon-btn play-btn" aria-label="Play/Pause">
+              <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+              <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <button id="next-btn" class="control-btn icon-btn" aria-label="Next">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Secondary controls: Share | Favorite | Search | Favorites Nav -->
+        <div class="secondary-controls">
+          <button id="share-btn" class="secondary-btn" aria-label="Share">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
+          </button>
+          <button id="fav-btn" class="secondary-btn hidden" aria-label="Favorite">
+            <svg class="icon-heart-outline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+            <svg class="icon-heart-filled" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </button>
+          <button id="search-nav-btn" class="secondary-btn hidden" aria-label="Browse">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          </button>
+          <button id="favs-nav-btn" class="secondary-btn hidden" aria-label="Favorites">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Catalog progress -->
+        <div class="catalog-progress">
+          <span id="heard-count">0</span>/<span id="total-count">0</span> heard
+          (<span id="heard-percent">0</span>%)
+        </div>
+      </div>
+    </div>
+
+    <!-- Search screen -->
+    <div id="search-screen" class="screen">
+      <div class="search-container">
+        <div class="search-header">
+          <button id="search-back-btn" class="search-back-btn" aria-label="Back to player">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+          </button>
+          <input type="text" id="track-search" placeholder="Search tracks..." class="track-search">
+          <button id="favs-filter-btn" class="search-filter-btn hidden" aria-label="Filter favorites">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </button>
+        </div>
+        <div id="track-list" class="track-list"></div>
+      </div>
+    </div>
+
+    <!-- Mini player footer (persistent) -->
+    <div id="mini-player" class="mini-player hidden">
+      <div class="mini-player-info" id="mini-player-info">
+        <span class="mini-marquee" id="mini-marquee">---</span>
+      </div>
+      <div class="mini-controls">
+        <button id="mini-prev-btn" class="mini-btn hidden" aria-label="Previous">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+        </button>
+        <button id="mini-play-btn" class="mini-btn play-btn" aria-label="Play/Pause">
+          <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+          <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button id="mini-next-btn" class="mini-btn" aria-label="Next">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Error screen -->
+    <div id="error-screen" class="screen">
+      <div class="error-content">
+        <h2>ERROR</h2>
+        <p id="error-message">Unable to load tracks.</p>
+        <button id="retry-btn">RETRY</button>
+        <button id="reset-btn" class="reset-btn">RESET APP</button>
+      </div>
+    </div>
+
+    <!-- Info modal -->
+    <div id="info-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <button id="modal-close" class="modal-close">&times;</button>
+        <div class="modal-body">
+          <h2>About</h2>
+
+          <h3>What</h3>
+          <p>
+            A self-hosted music streaming PWA. Drop in your catalog, deploy to AWS, and stream your collection from anywhere.
+          </p>
+          <p>
+            Built with <a href="https://github.com/rmzi/crate" target="_blank" rel="noopener">Crate</a> — an open-source streaming template.
+          </p>
+
+          <h3>How</h3>
+          <p>
+            <strong>Space</strong> to play/pause, <strong>N</strong> for next track,
+            <strong>&larr;/&rarr;</strong> to seek. The site remembers what you've heard and plays new tracks first.
+          </p>
+          <p>
+            <button id="full-reset-btn" class="modal-reset-btn">RESET ALL DATA</button>
+          </p>
+
+          <div class="modal-links">
+            <a href="https://github.com/rmzi/crate" target="_blank" rel="noopener" class="icon-link" aria-label="GitHub">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Hidden audio element -->
+  <audio id="audio-player" preload="auto"></audio>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

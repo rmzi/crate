@@ -1,0 +1,8 @@
+# Required: Your domain configuration
+root_domain = "example.com"
+subdomain   = "music"
+
+# Optional: Customize these
+site_name   = "My Crate"
+aws_profile = "default"
+secret_name = "crate-cloudfront-signing-key"
