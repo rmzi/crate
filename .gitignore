@@ -164,3 +164,6 @@ www/manifest.json
 
 # Build output (obfuscated JS for deploy)
 dist/
+
+.worktrees/
+.agent/
