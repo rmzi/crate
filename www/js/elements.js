@@ -65,7 +65,9 @@ export const elements = {
   miniPrevBtn: null,
   miniNextBtn: null,
   miniPlayerInfo: null,
-  downloadIndicator: null
+  downloadIndicator: null,
+  syncBtn: null,
+  syncProgress: null
 };
 
 /**
@@ -131,4 +133,6 @@ export function initElements() {
   elements.miniNextBtn = document.getElementById('mini-next-btn');
   elements.miniPlayerInfo = document.getElementById('mini-player-info');
   elements.downloadIndicator = document.getElementById('download-indicator');
+  elements.syncBtn = document.getElementById('sync-btn');
+  elements.syncProgress = document.getElementById('sync-progress');
 }

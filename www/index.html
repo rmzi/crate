@@ -145,6 +145,15 @@
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>
           </button>
+          <button id="sync-btn" class="search-sync-btn hidden" aria-label="Sync favorites offline">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
+            </svg>
+          </button>
+        </div>
+        <div id="sync-progress" class="sync-progress hidden">
+          <div class="sync-progress-bar"></div>
+          <span class="sync-progress-text"></span>
         </div>
         <div id="track-list" class="track-list"></div>
       </div>
@@ -185,14 +194,30 @@
       <div class="modal-content">
         <button id="modal-close" class="modal-close">&times;</button>
         <div class="modal-body">
-          <h2>About</h2>
+          <h2>Crate</h2>
 
           <h3>What</h3>
           <p>
-            A self-hosted music streaming PWA. Drop in your catalog, deploy to AWS, and stream your collection from anywhere.
+            Your crate is yours. Own it, share it. It's just music.
           </p>
           <p>
-            Built with <a href="https://github.com/rmzi/crate" target="_blank" rel="noopener">Crate</a> — an open-source streaming template.
+            Crate is a self-hosted streaming platform born from
+            <a href="https://github.com/rmzi/36247" target="_blank" rel="noopener">36247 Redux</a> — a revival of
+            <a href="https://fffff.at/36247/" target="_blank" rel="noopener">fffff.at/36247</a>, originally built by
+            <a href="https://fffff.at/about/" target="_blank" rel="noopener">F.A.T. Lab</a>.
+            In an era where platforms monetize our relationship to culture, Crate lets you
+            own the means of distributing your music. No accounts, no tracking, no algorithms.
+          </p>
+
+          <h3>Why</h3>
+          <p>
+            F.A.T. Lab said it best: release early, often and with rap music. Their original 36247 was a
+            24/7 Three 6 Mafia player — infinite tracks at your convenience, curation in the admin's hands,
+            control in the user's. It rejected the idea of a big institution owning the means of distributing music.
+          </p>
+          <p>
+            Crate carries that forward. It's open source, white-labelable, and virtually free to operate.
+            Drop in your catalog. Deploy. Stream. That's it.
           </p>
 
           <h3>How</h3>

@@ -1,6 +1,10 @@
-# Crate
+<p align="center">
+  <img src="crate_logo.png" alt="Crate" width="200">
+</p>
 
-Your crate is yours. Own it, share it. It's just music.
+<h1 align="center">Crate</h1>
+
+<p align="center">Your crate is yours. Own it, share it. It's just music.</p>
 
 A self-hosted music streaming PWA with AWS infrastructure. Drop in your catalog, configure your branding, deploy, and stream.
 

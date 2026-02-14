@@ -92,9 +92,7 @@ export function markTrackHeard(trackId) {
   if (updateCatalogProgressFn) {
     updateCatalogProgressFn();
   }
-  if (isSecretMode()) {
-    renderTrackList();
-  }
+  renderTrackList();
 }
 
 // Debounce search tracking to avoid spam
@@ -159,6 +157,7 @@ export function renderTrackList() {
     const isPlaying = state.currentTrack && state.currentTrack.id === track.id;
     const playingClass = isPlaying ? 'playing' : '';
     const isFav = state.favoriteTracks.has(track.id);
+    const isCached = state.cachedTracks.has(track.id);
     const artist = track.artist || '???';
     const title = track.title || '???';
     const album = track.album || '';
@@ -175,7 +174,7 @@ export function renderTrackList() {
           <span class="track-item-artist">${escapeHtml(artist)}</span>
         </div>
         ${isFav ? '<span class="track-item-fav">&#9829;</span>' : ''}
-        ${isTrackCached(track) ? '<span class="track-item-cached"></span>' : ''}
+        ${isCached ? '<span class="track-item-cached" title="Available offline">&#9660;</span>' : ''}
       </div>
     `;
   }).join('');

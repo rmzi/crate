@@ -29,15 +29,25 @@ export function updateModeBasedUI() {
     elements.searchNavBtn.classList.toggle('hidden', !isSecret);
   }
 
-  // Favorites buttons: secret only
+  // Favorite + favorites nav: available in ALL modes
   if (elements.favBtn) {
-    elements.favBtn.classList.toggle('hidden', !isSecret);
+    elements.favBtn.classList.remove('hidden');
   }
-  if (elements.favsNavBtn) {
-    elements.favsNavBtn.classList.toggle('hidden', !isSecret);
+  // favsNavBtn stays hidden — favorites are accessible via search screen filter
+
+  // Search input: secret only (regular users can only browse favorites, not search)
+  if (elements.trackSearch) {
+    elements.trackSearch.classList.toggle('hidden', !isSecret);
   }
+
+  // Favorites filter toggle: secret only
   if (elements.favsFilterBtn) {
     elements.favsFilterBtn.classList.toggle('hidden', !isSecret);
+  }
+
+  // Sync offline button: secret only
+  if (elements.syncBtn) {
+    elements.syncBtn.classList.toggle('hidden', !isSecret);
   }
 
   // Search trigger: secret only

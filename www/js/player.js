@@ -12,6 +12,7 @@ import { setSignedCookies, clearAllCookies } from './cookies.js';
 import { loadHeardTracks, loadFavoriteTracks, saveFavoriteTracks, setSecretUnlocked } from './storage.js';
 import { setTrackInHash } from './hash.js';
 import { showScreen, showError, showAuthError, updateMiniPlayer, updateModeBasedUI } from './ui.js';
+import { getCachedAudio, getCachedTrackIds, removeCachedAudio, syncFavoritesOffline, clearCache } from './cache.js';
 import {
   isIOSPWA,
   unlockAudio,
@@ -30,6 +31,9 @@ import {
   setPlayTrackFn,
   setUpdateCatalogProgressFn
 } from './tracks.js';
+
+// Track current blob URL for cleanup
+let currentBlobUrl = null;
 
 /**
  * Handle playback errors with recovery
@@ -216,9 +220,27 @@ export async function playTrack(track, fromHistory = false, isRetry = false) {
 
   const audioUrl = getMediaUrl(track.path);
 
+  // Revoke previous blob URL to prevent memory leaks
+  if (currentBlobUrl) {
+    URL.revokeObjectURL(currentBlobUrl);
+    currentBlobUrl = null;
+  }
+
+  // Check offline cache first
+  let audioSource = audioUrl;
+  try {
+    const cachedBlob = await getCachedAudio(track.id);
+    if (cachedBlob) {
+      audioSource = URL.createObjectURL(cachedBlob);
+      currentBlobUrl = audioSource;
+    }
+  } catch (e) {
+    // Cache miss or error, fall back to network
+  }
+
   try {
     // Set source and load
-    elements.audio.src = audioUrl;
+    elements.audio.src = audioSource;
     elements.audio.load();
 
     // For iOS Safari PWA, try playing immediately (it will buffer)
@@ -249,9 +271,7 @@ export async function playTrack(track, fromHistory = false, isRetry = false) {
     });
 
     // Update track list highlighting
-    if (isSecretMode()) {
-      renderTrackList();
-    }
+    renderTrackList();
 
     // Update mini player
     updateMiniPlayer();
@@ -340,7 +360,7 @@ export function playNextTrack() {
  * @param {Object} track - Track to download
  * @param {string} method - Download method for analytics
  */
-export function downloadTrack(track, method = 'button') {
+export async function downloadTrack(track, method = 'button') {
   trackEvent('download', {
     artist: track.artist,
     album: track.album,
@@ -353,9 +373,21 @@ export function downloadTrack(track, method = 'button') {
   const audioUrl = getMediaUrl(track.path);
   const filename = `${track.artist || 'Unknown'} - ${track.title || 'Unknown'}.mp3`;
 
-  // Fetch the file and trigger download
-  fetch(audioUrl, { credentials: 'include' })
-    .then(response => response.blob())
+  // Check cache first, then fall back to network
+  let blobPromise;
+  try {
+    const cachedBlob = await getCachedAudio(track.id);
+    if (cachedBlob) {
+      blobPromise = Promise.resolve(cachedBlob);
+    }
+  } catch (e) {
+    // Fall through to network
+  }
+  if (!blobPromise) {
+    blobPromise = fetch(audioUrl, { credentials: 'include' }).then(r => r.blob());
+  }
+
+  blobPromise
     .then(blob => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -487,7 +519,7 @@ export function resetApp() {
 /**
  * Full reset - clears everything including heard tracks
  */
-export function fullResetApp() {
+export async function fullResetApp() {
   if (!confirm('This will clear all data including your listening history. Continue?')) {
     return;
   }
@@ -499,6 +531,11 @@ export function fullResetApp() {
     localStorage.removeItem(CONFIG.FAVORITES_KEY);
   } catch (e) {
     console.warn('Failed to clear storage:', e);
+  }
+  try {
+    await clearCache();
+  } catch (e) {
+    console.warn('Failed to clear audio cache:', e);
   }
   window.location.href = window.location.pathname + '?_=' + Date.now();
 }
@@ -528,13 +565,18 @@ export async function startPlayer() {
     loadFavoriteTracks();
     updateCatalogProgress();
 
+    // Load cached track IDs for offline indicators
+    try {
+      state.cachedTracks = await getCachedTrackIds();
+    } catch (e) {
+      console.warn('Failed to load cache state:', e);
+      state.cachedTracks = new Set();
+    }
+
     // Setup UI based on mode (centralized)
     updateModeBasedUI();
 
-    // Render track list if in secret mode
-    if (isSecretMode()) {
-      renderTrackList();
-    }
+    renderTrackList();
 
     showScreen('player-screen');
 
@@ -579,15 +621,22 @@ export function toggleFavorite() {
   if (state.favoriteTracks.has(id)) {
     state.favoriteTracks.delete(id);
     trackEvent('unfavorite', { track_id: id, artist: state.currentTrack.artist, title: state.currentTrack.title });
+    // Remove from offline cache when unfavorited
+    if (state.cachedTracks.has(id)) {
+      removeCachedAudio(id).then(() => {
+        state.cachedTracks.delete(id);
+        renderTrackList();
+        updateSyncUI();
+      }).catch(e => console.warn('Failed to remove cached audio:', e));
+    }
   } else {
     state.favoriteTracks.add(id);
     trackEvent('favorite', { track_id: id, artist: state.currentTrack.artist, title: state.currentTrack.title });
   }
   saveFavoriteTracks();
   updateFavoriteButton();
-  if (isSecretMode()) {
-    renderTrackList();
-  }
+  updateSyncUI();
+  renderTrackList();
 }
 
 /**
@@ -611,6 +660,85 @@ export function toggleFavoritesFilter() {
     elements.trackSearch.value = '';
   }
   filterTracks(elements.trackSearch ? elements.trackSearch.value : '');
+}
+
+/**
+ * Update sync button and progress bar UI
+ */
+export function updateSyncUI() {
+  if (!elements.syncBtn) return;
+
+  const allCached = state.favoriteTracks.size > 0 &&
+    [...state.favoriteTracks].every(id => state.cachedTracks.has(id));
+
+  elements.syncBtn.classList.toggle('syncing', state.cacheSyncing);
+  elements.syncBtn.classList.toggle('synced', allCached && !state.cacheSyncing);
+
+  if (elements.syncProgress) {
+    if (state.cacheSyncing && state.cacheSyncProgress) {
+      elements.syncProgress.classList.remove('hidden');
+      const { completed, total } = state.cacheSyncProgress;
+      const percent = total > 0 ? (completed / total) * 100 : 0;
+      const bar = elements.syncProgress.querySelector('.sync-progress-bar');
+      const text = elements.syncProgress.querySelector('.sync-progress-text');
+      if (bar) bar.style.setProperty('--progress', `${percent}%`);
+      if (text) text.textContent = `${completed}/${total}`;
+    } else {
+      elements.syncProgress.classList.add('hidden');
+    }
+  }
+}
+
+/**
+ * Sync all favorited tracks to offline cache
+ */
+export async function syncFavoritesCache() {
+  if (state.cacheSyncing) return;
+
+  const favoriteIds = [...state.favoriteTracks];
+  if (favoriteIds.length === 0) return;
+
+  state.cacheSyncing = true;
+  state.cacheSyncProgress = { completed: 0, total: 0 };
+  updateSyncUI();
+
+  const fetchTrackBlob = async (trackId) => {
+    const track = state.tracks.find(t => t.id === trackId);
+    if (!track) throw new Error('Track not found');
+    const url = getMediaUrl(track.path);
+    const response = await fetch(url, { credentials: 'include' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.blob();
+  };
+
+  const result = await syncFavoritesOffline(
+    favoriteIds,
+    fetchTrackBlob,
+    (progress) => {
+      state.cacheSyncProgress = progress;
+      if (progress.currentTrackId) {
+        state.cachedTracks.add(progress.currentTrackId);
+      }
+      updateSyncUI();
+    }
+  );
+
+  state.cacheSyncing = false;
+  state.cacheSyncProgress = null;
+  state.cachedTracks = await getCachedTrackIds();
+  updateSyncUI();
+  renderTrackList();
+
+  trackEvent('cache_sync', {
+    synced: result.synced,
+    failed: result.failed,
+    skipped: result.skipped,
+    total_favorites: favoriteIds.length
+  });
+
+  if (result.failed > 0) {
+    console.warn(`Cache sync: ${result.synced} synced, ${result.failed} failed, ${result.skipped} already cached`);
+  }
 }
 
 // Re-export for convenience

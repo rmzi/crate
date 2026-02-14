@@ -7,13 +7,13 @@
 export const SITE = {
   // Required
   name: 'Crate',                // Site name (shown in title, share text, PWA)
-  url: 'https://example.com',   // Production URL for media paths
+  url: 'https://crate.rmzi.world',
 
   // Auth
-  password: null,                // Voice recognition passphrase (null to disable)
+  password: null,
 
   // Analytics
-  gaTrackingId: null,            // Google Analytics 4 tracking ID (null to disable)
+  gaTrackingId: null,
 
   // Theme (CSS custom properties are in main.css :root)
   theme: {

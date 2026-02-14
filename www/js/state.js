@@ -60,7 +60,11 @@ export const state = {
   currentRetryAttempts: 0,
   maxRetryAttempts: 3,
   retryDelay: 1000,
-  audioUnlocked: false
+  audioUnlocked: false,
+  // Offline cache state
+  cachedTracks: new Set(),
+  cacheSyncing: false,
+  cacheSyncProgress: null
 };
 
 /**

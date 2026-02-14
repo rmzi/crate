@@ -258,6 +258,8 @@ def find_audio_files(path: Path) -> list:
 
 
 def main():
+    global TRACKS_BUCKET, AWS_PROFILE
+
     parser = argparse.ArgumentParser(
         description='Upload audio files to tracks bucket'
     )
@@ -285,8 +287,6 @@ def main():
 
     args = parser.parse_args()
 
-    # Update globals from args
-    global TRACKS_BUCKET, AWS_PROFILE
     TRACKS_BUCKET = args.bucket
     AWS_PROFILE = args.profile
 

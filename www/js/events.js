@@ -45,7 +45,8 @@ import {
   renderTrackList,
   toggleFavorite,
   toggleFavoritesFilter,
-  filterTracks
+  filterTracks,
+  syncFavoritesCache
 } from './player.js';
 import { initPWA, setOfflineChangeCallback } from './pwa.js';
 
@@ -641,9 +642,7 @@ export function init() {
   if (elements.searchNavBtn) {
     elements.searchNavBtn.addEventListener('click', () => {
       showScreen('search-screen');
-      if (isSecretMode()) {
-        renderTrackList();
-      }
+      renderTrackList();
     });
   }
 
@@ -670,6 +669,11 @@ export function init() {
   // Favorites filter toggle in search header
   if (elements.favsFilterBtn) {
     elements.favsFilterBtn.addEventListener('click', toggleFavoritesFilter);
+  }
+
+  // Sync favorites offline button
+  if (elements.syncBtn) {
+    elements.syncBtn.addEventListener('click', syncFavoritesCache);
   }
 
   // Search back button

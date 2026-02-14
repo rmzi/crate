@@ -661,6 +661,15 @@ body {
   padding-right: 4px;
 }
 
+/* Cached/offline indicator in track list */
+.track-item-cached {
+  color: var(--muted);
+  font-size: 10px;
+  flex-shrink: 0;
+  padding-right: 4px;
+  opacity: 0.6;
+}
+
 /* Empty state for favorites */
 .track-list-empty {
   text-align: center;
@@ -668,6 +677,77 @@ body {
   padding: 40px 20px;
   font-size: 16px;
   letter-spacing: 0.1em;
+}
+
+/* Sync offline button in search header */
+.search-sync-btn {
+  background: transparent;
+  border: 1px solid var(--muted);
+  color: var(--muted);
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.search-sync-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.search-sync-btn:hover {
+  border-color: var(--fg);
+  color: var(--fg);
+}
+
+.search-sync-btn.syncing {
+  color: var(--accent);
+  border-color: var(--accent);
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+.search-sync-btn.synced {
+  color: #4a4;
+  border-color: #4a4;
+}
+
+/* Sync progress bar */
+.sync-progress {
+  width: 100%;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.sync-progress-bar {
+  flex: 1;
+  height: 3px;
+  background: #222;
+  position: relative;
+}
+
+.sync-progress-bar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: var(--progress, 0%);
+  background: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.sync-progress-text {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  letter-spacing: 0.05em;
 }
 
 /* Search screen */
