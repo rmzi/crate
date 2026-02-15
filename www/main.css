@@ -404,6 +404,8 @@ body {
   height: var(--artwork-size);
   border: 2px solid var(--muted);
   flex-shrink: 0;
+  border-radius: 2px;
+  overflow: hidden;
 }
 
 .artwork-image {
@@ -415,6 +417,10 @@ body {
 }
 
 .artwork-container.no-art {
+  /* Show the container even when no artwork - will display gradient background */
+}
+
+.artwork-container.no-art .artwork-image {
   display: none;
 }
 
@@ -1261,10 +1267,11 @@ body {
   object-fit: cover;
   flex-shrink: 0;
   background: #222;
+  border-radius: 2px;
 }
 
 .track-item-thumb.no-art {
-  display: none;
+  /* Show the thumbnail even when no artwork - gradient applied via inline style */
 }
 
 .track-item-info {
