@@ -6,7 +6,7 @@
 import { CONFIG } from './config.js';
 import { state, isSecretMode } from './state.js';
 import { elements } from './elements.js';
-import { formatTime, getMediaUrl } from './utils.js';
+import { formatTime, getMediaUrl, generateTrackGradient } from './utils.js';
 import { trackEvent } from './analytics.js';
 import { setSignedCookies, clearAllCookies } from './cookies.js';
 import { loadHeardTracks, loadFavoriteTracks, saveFavoriteTracks, setSecretUnlocked } from './storage.js';
@@ -118,10 +118,14 @@ export function updateArtwork(track) {
     elements.artworkImage.src = getMediaUrl(track.artwork);
     elements.artworkImage.alt = `${track.artist || 'Unknown'} - ${track.album || 'Unknown'}`;
     elements.artworkContainer.classList.remove('no-art');
+    // Clear any background gradient
+    elements.artworkContainer.style.background = '';
   } else {
     elements.artworkImage.src = '';
     elements.artworkImage.alt = '';
     elements.artworkContainer.classList.add('no-art');
+    // Generate and apply gradient background
+    elements.artworkContainer.style.background = generateTrackGradient(track.id);
   }
 }
 
