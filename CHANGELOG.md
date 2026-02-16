@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.0] - 2026-02-15T20:41:35-05:00
+
+### Added
+- Metadata enrichment pipeline via MusicBrainz, Cover Art Archive, and iTunes Search API
+- Single entrypoint `pipeline.sh` for extract, upload, enrich, and publish steps
+- Confidence-based matching with auto-accept, review, and skip thresholds
+- Resume and dry-run support for idempotent re-runs
+- Publish step uploads artwork to S3 and pushes enriched manifest
+- Generative CSS gradient backgrounds for tracks without album artwork
+- Archivist agent and enrich skill for future curation workflows
+
+### Changed
+- `batch_upload.py` accepts enriched metadata format with `--enriched` flag
+
 ## [0.1.0] - 2026-02-14T01:12:36+00:00
 
 ### Added
