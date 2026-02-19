@@ -14,12 +14,23 @@ import { updateModeBasedUI } from './ui.js';
 // Forward declaration - will be set by player module
 let startPlayerFn = null;
 
+// Plugin hook - custom reward function (e.g., cash rain for 36247)
+let konamiRewardFn = null;
+
 /**
  * Set the startPlayer function reference
  * @param {Function} fn - The startPlayer function
  */
 export function setStartPlayerFn(fn) {
   startPlayerFn = fn;
+}
+
+/**
+ * Set a custom Konami reward function (replaces default cash rain)
+ * @param {Function} fn - The reward function to call on Konami success
+ */
+export function setKonamiReward(fn) {
+  konamiRewardFn = fn;
 }
 
 /**
@@ -100,6 +111,17 @@ export function showSecretHint() {
 }
 
 /**
+ * Fire the Konami reward animation (custom or default cash rain)
+ */
+function fireKonamiReward() {
+  if (konamiRewardFn) {
+    konamiRewardFn();
+  } else {
+    showCashRain();
+  }
+}
+
+/**
  * Show cash rain animation
  */
 export function showCashRain() {
@@ -162,9 +184,9 @@ export function handleKonamiInput(direction) {
     if (state.konamiProgress === KONAMI_SEQUENCE.length) {
       state.konamiProgress = 0; // Reset for next time
 
-      // If already unlocked, just show cash rain (and go to player if on enter screen)
+      // If already unlocked, just show reward (and go to player if on enter screen)
       if (state.secretUnlocked) {
-        showCashRain();
+        fireKonamiReward();
         if (isEnterScreen && startPlayerFn) {
           setTimeout(() => startPlayerFn(), 2500);
         }
@@ -178,7 +200,7 @@ export function handleKonamiInput(direction) {
       trackEvent('secret_unlock', { method: 'konami' });
       flashKonamiSuccess();
       setSignedCookies();
-      showCashRain();
+      fireKonamiReward();
       // Update UI immediately for mode change
       updateModeBasedUI();
       // Go to player after animation
@@ -222,7 +244,7 @@ function unlockSecretDesktop() {
   state.mode = MODES.SECRET;
   setSecretUnlocked(true);
   setSignedCookies();
-  showCashRain();
+  fireKonamiReward();
   // Update UI immediately for mode change
   updateModeBasedUI();
   // Go to player after animation
@@ -240,7 +262,7 @@ function unlockSecretMobile() {
   state.mode = MODES.SECRET;
   setSecretUnlocked(true);
   setSignedCookies();
-  showCashRain();
+  fireKonamiReward();
   // Update UI immediately for mode change
   updateModeBasedUI();
   // Go to player after animation

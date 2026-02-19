@@ -15,7 +15,7 @@ const SRC = path.join(ROOT, 'www');
 const DIST = path.join(ROOT, 'dist');
 
 // Files to skip obfuscation (copied as-is)
-const SKIP_OBFUSCATION = new Set(['config.js']);
+const SKIP_OBFUSCATION = new Set(['config.js', 'site.config.js']);
 
 const OBFUSCATOR_OPTIONS = {
   compact: true,
