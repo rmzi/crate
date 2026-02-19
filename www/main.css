@@ -1853,3 +1853,50 @@ body {
     height: clamp(40px, 12vh, 56px);
   }
 }
+
+/* Repeat button - 3-state toggle */
+.repeat-btn {
+  position: relative;
+  opacity: 0.3;
+  transition: opacity 0.2s, color 0.2s;
+}
+
+.repeat-btn svg {
+  width: clamp(24px, 3.5vh, 36px) !important;
+  height: clamp(24px, 3.5vh, 36px) !important;
+}
+
+.repeat-btn.repeat-album {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.repeat-btn.repeat-one {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.repeat-indicator {
+  position: absolute;
+  top: -2px;
+  right: -6px;
+  font-size: 10px;
+  font-weight: bold;
+  color: var(--accent);
+  pointer-events: none;
+}
+
+/* Responsive repeat button sizing */
+@media (max-height: 600px) {
+  .repeat-btn svg {
+    width: clamp(18px, 3vh, 24px) !important;
+    height: clamp(18px, 3vh, 24px) !important;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .repeat-btn svg {
+    width: clamp(18px, 5vh, 24px) !important;
+    height: clamp(18px, 5vh, 24px) !important;
+  }
+}

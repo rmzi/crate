@@ -3,7 +3,7 @@
  * @module tracks
  */
 
-import { state, isSecretMode } from './state.js';
+import { state, isSecretMode, REPEAT_MODES } from './state.js';
 import { elements } from './elements.js';
 import { seededRandom, escapeHtml, getMediaUrl } from './utils.js';
 import { saveHeardTracks } from './storage.js';
@@ -70,6 +70,24 @@ export function getNextTrack() {
     ? state.tracks.filter(t => isTrackCached(t))
     : state.tracks;
   if (pool.length === 0) return null;
+
+  // Album-scoped filtering for REPEAT_ALBUM mode
+  if (state.repeatMode === REPEAT_MODES.REPEAT_ALBUM && state.currentTrack?.album) {
+    const album = state.currentTrack.album;
+    const albumPool = pool.filter(t => t.album === album);
+    if (albumPool.length > 0) {
+      pool = albumPool;
+      const unheard = pool.filter(t => !state.heardTracks.has(t.id));
+      if (unheard.length === 0) {
+        // Clear only album track IDs from heardTracks, then loop
+        pool.forEach(t => state.heardTracks.delete(t.id));
+        saveHeardTracks();
+        return pool[seededRandom(pool.length)];
+      }
+      return unheard[seededRandom(unheard.length)];
+    }
+    // If no album matches found, fall through to full pool
+  }
 
   const unheard = pool.filter(t => !state.heardTracks.has(t.id));
 

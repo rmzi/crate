@@ -46,7 +46,8 @@ import {
   toggleFavorite,
   toggleFavoritesFilter,
   filterTracks,
-  syncFavoritesCache
+  syncFavoritesCache,
+  cycleRepeatMode
 } from './player.js';
 import { initPWA, setOfflineChangeCallback } from './pwa.js';
 
@@ -125,6 +126,12 @@ function handleKeydown(e) {
       e.preventDefault();
       elements.audio.currentTime = Math.max(0, elements.audio.currentTime - 10);
     }
+  }
+
+  // R to cycle repeat mode
+  if (e.code === 'KeyR' && state.currentTrack) {
+    e.preventDefault();
+    cycleRepeatMode();
   }
 
   // F to toggle favorite (secret mode)
@@ -674,6 +681,11 @@ export function init() {
   // Sync favorites offline button
   if (elements.syncBtn) {
     elements.syncBtn.addEventListener('click', syncFavoritesCache);
+  }
+
+  // Repeat button
+  if (elements.repeatBtn) {
+    elements.repeatBtn.addEventListener('click', cycleRepeatMode);
   }
 
   // Search back button
