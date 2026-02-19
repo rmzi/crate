@@ -6,6 +6,15 @@
 import { MODES } from './config.js';
 
 /**
+ * Repeat mode identifiers
+ */
+export const REPEAT_MODES = {
+  OFF: 'off',
+  REPEAT_ALBUM: 'repeat_album',
+  REPEAT_ONE: 'repeat_one'
+};
+
+/**
  * Screen identifiers for explicit state tracking
  */
 export const SCREENS = {
@@ -64,7 +73,9 @@ export const state = {
   // Offline cache state
   cachedTracks: new Set(),
   cacheSyncing: false,
-  cacheSyncProgress: null
+  cacheSyncProgress: null,
+  // Repeat mode
+  repeatMode: 'off'
 };
 
 /**

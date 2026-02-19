@@ -4,7 +4,7 @@
  */
 
 import { CONFIG } from './config.js';
-import { state, isSecretMode } from './state.js';
+import { state, isSecretMode, REPEAT_MODES } from './state.js';
 import { elements } from './elements.js';
 import { formatTime, getMediaUrl } from './utils.js';
 import { trackEvent } from './analytics.js';
@@ -468,6 +468,52 @@ export function handleNext() {
 }
 
 /**
+ * Cycle repeat mode: OFF → REPEAT_ALBUM → REPEAT_ONE → OFF
+ */
+export function cycleRepeatMode() {
+  switch (state.repeatMode) {
+    case REPEAT_MODES.OFF:
+      state.repeatMode = REPEAT_MODES.REPEAT_ALBUM;
+      break;
+    case REPEAT_MODES.REPEAT_ALBUM:
+      state.repeatMode = REPEAT_MODES.REPEAT_ONE;
+      break;
+    case REPEAT_MODES.REPEAT_ONE:
+      state.repeatMode = REPEAT_MODES.OFF;
+      break;
+  }
+  updateRepeatButton();
+  trackEvent('repeat_mode', { mode: state.repeatMode });
+}
+
+/**
+ * Update repeat button visual state
+ */
+export function updateRepeatButton() {
+  if (!elements.repeatBtn) return;
+  const indicator = elements.repeatBtn.querySelector('.repeat-indicator');
+
+  elements.repeatBtn.classList.remove('repeat-album', 'repeat-one');
+
+  switch (state.repeatMode) {
+    case REPEAT_MODES.OFF:
+      elements.repeatBtn.setAttribute('aria-label', 'Repeat: off');
+      if (indicator) indicator.textContent = '';
+      break;
+    case REPEAT_MODES.REPEAT_ALBUM:
+      elements.repeatBtn.classList.add('repeat-album');
+      elements.repeatBtn.setAttribute('aria-label', 'Repeat: album');
+      if (indicator) indicator.textContent = '';
+      break;
+    case REPEAT_MODES.REPEAT_ONE:
+      elements.repeatBtn.classList.add('repeat-one');
+      elements.repeatBtn.setAttribute('aria-label', 'Repeat: one');
+      if (indicator) indicator.textContent = '1';
+      break;
+  }
+}
+
+/**
  * Handle track ended event
  */
 export function handleTrackEnded() {
@@ -479,6 +525,14 @@ export function handleTrackEnded() {
       duration_seconds: Math.floor(elements.audio.duration)
     });
   }
+
+  // Repeat One: replay current track
+  if (state.repeatMode === REPEAT_MODES.REPEAT_ONE) {
+    elements.audio.currentTime = 0;
+    elements.audio.play().catch(() => {});
+    return;
+  }
+
   playNextTrack();
 }
 
