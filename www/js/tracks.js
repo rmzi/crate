@@ -5,7 +5,7 @@
 
 import { state, isSecretMode, REPEAT_MODES } from './state.js';
 import { elements } from './elements.js';
-import { seededRandom, escapeHtml, getMediaUrl } from './utils.js';
+import { seededRandom, escapeHtml, getMediaUrl, generateTrackGradient } from './utils.js';
 import { saveHeardTracks } from './storage.js';
 import { trackEvent } from './analytics.js';
 import { showAuthError } from './ui.js';
@@ -182,10 +182,12 @@ export function renderTrackList() {
     const year = track.year || '';
     const artworkSrc = track.artwork ? getMediaUrl(track.artwork) : '';
     const thumbClass = artworkSrc ? '' : 'no-art';
+    // Generate gradient for tracks without artwork
+    const thumbStyle = artworkSrc ? '' : `style="background: ${generateTrackGradient(track.id)}"`;
 
     return `
       <div class="track-item ${playingClass}" data-id="${track.id}">
-        <img class="track-item-thumb ${thumbClass}" src="${artworkSrc}" alt="" loading="lazy">
+        <img class="track-item-thumb ${thumbClass}" src="${artworkSrc}" alt="" loading="lazy" ${thumbStyle}>
         <div class="track-item-info">
           <span class="track-item-title">${escapeHtml(title)}</span>
           ${album ? `<span class="track-item-album">${escapeHtml(album)}${year ? ` (${escapeHtml(year)})` : ''}</span>` : (year ? `<span class="track-item-year">${escapeHtml(year)}</span>` : '')}

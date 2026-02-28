@@ -20,6 +20,7 @@ from botocore.exceptions import ClientError
 AWS_PROFILE = os.environ.get('AWS_PROFILE', 'default')
 TRACKS_BUCKET = os.environ.get('TRACKS_BUCKET', '')
 METADATA_FILE = 'metadata_base.json'
+ENRICHED_METADATA_FILE = 'metadata_enriched.json'
 MANIFEST_FILE = 'manifest.json'
 
 
@@ -59,11 +60,35 @@ def get_content_type(filepath: Path) -> str:
     return types.get(ext, 'application/octet-stream')
 
 
-def load_metadata(metadata_dir: Path) -> dict:
-    """Load metadata_base.json."""
+def load_metadata(metadata_dir: Path, enriched: bool = False) -> dict:
+    """Load metadata JSON. Prefers enriched if --enriched flag is set.
+
+    Normalizes tracks to dict format regardless of input shape (list or dict).
+    """
+    if enriched:
+        enriched_file = metadata_dir / ENRICHED_METADATA_FILE
+        if enriched_file.exists():
+            print(f"Using enriched metadata: {enriched_file}")
+            with open(enriched_file) as f:
+                data = json.load(f)
+            return _normalize_tracks(data)
+        print(f"Enriched metadata not found, falling back to base")
     metadata_file = metadata_dir / METADATA_FILE
     with open(metadata_file) as f:
-        return json.load(f)
+        data = json.load(f)
+    return _normalize_tracks(data)
+
+
+def _normalize_tracks(data: dict) -> dict:
+    """Ensure tracks is a dict keyed by path/id (handles manifest list format)."""
+    tracks = data.get('tracks', {})
+    if isinstance(tracks, list):
+        tracks_dict = {}
+        for track in tracks:
+            key = track.get('path') or track.get('original_path') or track['id']
+            tracks_dict[key] = track
+        data['tracks'] = tracks_dict
+    return data
 
 
 def save_metadata(metadata_dir: Path, metadata: dict):
@@ -145,12 +170,17 @@ def main():
         action='store_true',
         help='Skip uploading artwork files'
     )
+    parser.add_argument(
+        '--enriched',
+        action='store_true',
+        help='Use metadata_enriched.json instead of metadata_base.json'
+    )
 
     args = parser.parse_args()
 
     # Load metadata
     print(f"Loading metadata from {args.metadata_dir}...")
-    metadata = load_metadata(args.metadata_dir)
+    metadata = load_metadata(args.metadata_dir, enriched=args.enriched)
 
     total_tracks = len(metadata['tracks'])
     print(f"Found {total_tracks} tracks in metadata")
