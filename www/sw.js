@@ -4,7 +4,7 @@
  * artwork (cache-first), audio (cache-first + cache-on-play)
  */
 
-const SHELL_CACHE = 'shell-v1';
+const SHELL_CACHE = 'shell-v2';
 const MANIFEST_CACHE = 'manifest-v1';
 const ARTWORK_CACHE = 'artwork-v1';
 const AUDIO_CACHE = 'audio-v1';
@@ -31,6 +31,8 @@ const SHELL_ASSETS = [
   '/js/pwa.js',
   '/js/state.js',
   '/js/storage.js',
+  '/js/sync.js',
+  '/js/crypto.js',
   '/js/tracks.js',
   '/js/ui.js',
   '/js/utils.js',
@@ -46,6 +48,7 @@ const SHELL_ASSETS = [
 function isPassthrough(url) {
   const path = new URL(url).pathname;
   if (path === '/version.txt') return true;
+  if (path.startsWith('/sync/')) return true;
   // Cross-origin (GA, fonts) handled by origin check below
   return false;
 }
