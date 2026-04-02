@@ -1942,14 +1942,14 @@ body {
 
 /* Success flash */
 .state-sync-btn.sync-success {
-  color: #4a4 \!important;
-  border-color: #4a4 \!important;
+  color: #4a4 !important;
+  border-color: #4a4 !important;
   animation: sync-success-flash 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .state-sync-btn.sync-error {
-  color: var(--accent) \!important;
-  border-color: var(--accent) \!important;
+  color: var(--accent) !important;
+  border-color: var(--accent) !important;
 }
 
 @keyframes sync-spin {
