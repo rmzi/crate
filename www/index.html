@@ -149,11 +149,19 @@
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>
           </button>
-          <button id="sync-btn" class="search-sync-btn hidden" aria-label="Sync favorites offline">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
-            </svg>
-          </button>
+            <button id="state-sync-btn" class="search-sync-btn state-sync-btn hidden" aria-label="Sync state across devices">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4v5h5"/>
+                <path d="M20 20v-5h-5"/>
+                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L4 9"/>
+                <path d="M3.51 15A9 9 0 0 0 18.36 18.36L20 15"/>
+              </svg>
+            </button>
+            <button id="offline-cache-btn" class="search-sync-btn hidden" aria-label="Cache favorites offline">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/>
+              </svg>
+            </button>
         </div>
         <div id="sync-progress" class="sync-progress hidden">
           <div class="sync-progress-bar"></div>
@@ -199,6 +207,31 @@
         <button id="modal-close" class="modal-close">&times;</button>
         <div class="modal-body">
           <!-- SITE_MD_CONTENT -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Sync Modal -->
+    <div id="sync-modal" class="modal sync-modal hidden">
+      <div class="sync-modal-backdrop"></div>
+      <div class="modal-content sync-modal-content">
+        <button id="sync-modal-close" class="modal-close">&times;</button>
+        <div class="sync-modal-body">
+          <h2 class="sync-modal-title">SYNC</h2>
+          <p class="sync-modal-subtitle">favorites across devices</p>
+          <form id="sync-form" class="sync-form" autocomplete="off">
+            <input type="text" id="sync-username" class="sync-input" placeholder="USERNAME" autocomplete="username" required>
+            <input type="password" id="sync-password" class="sync-input" placeholder="PASSWORD" autocomplete="current-password" required>
+            <div id="sync-error" class="sync-error hidden"></div>
+            <div class="sync-actions">
+              <button type="submit" id="sync-submit" class="sync-action-btn">SYNC</button>
+            </div>
+          </form>
+          <div id="sync-status" class="sync-status hidden">
+            <div class="sync-status-icon"></div>
+            <span class="sync-status-text"></span>
+          </div>
+          <button id="sync-logout" class="sync-logout hidden">DISCONNECT</button>
         </div>
       </div>
     </div>

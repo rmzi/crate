@@ -1900,3 +1900,324 @@ body {
     height: clamp(18px, 5vh, 24px) !important;
   }
 }
+
+/* ============================================
+   State Sync UI
+   ============================================ */
+
+/* Sync button — two rotating arrows */
+.state-sync-btn {
+  position: relative;
+}
+
+.state-sync-btn svg {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.state-sync-btn:hover svg {
+  transform: rotate(30deg);
+}
+
+.state-sync-btn:active svg {
+  transform: rotate(180deg);
+  transition-duration: 0.15s;
+}
+
+/* Syncing state — continuous rotation */
+.state-sync-btn.syncing svg {
+  animation: sync-spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Connected indicator — green dot */
+.state-sync-btn.connected::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 6px;
+  height: 6px;
+  background: #4a4;
+  border: 1px solid var(--bg);
+}
+
+/* Success flash */
+.state-sync-btn.sync-success {
+  color: #4a4 \!important;
+  border-color: #4a4 \!important;
+  animation: sync-success-flash 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.state-sync-btn.sync-error {
+  color: var(--accent) \!important;
+  border-color: var(--accent) \!important;
+}
+
+@keyframes sync-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes sync-success-flash {
+  0%   { opacity: 1; transform: scale(1); }
+  50%  { opacity: 0.7; transform: scale(1.15); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* ---- Sync Modal ---- */
+
+.sync-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sync-modal.hidden {
+  display: none;
+}
+
+.sync-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  animation: sync-backdrop-in 0.25s ease-out both;
+}
+
+.sync-modal-content {
+  position: relative;
+  max-width: 340px;
+  width: 90%;
+  padding: 40px 30px;
+  background: var(--bg);
+  border: 2px solid var(--muted);
+  text-align: center;
+  z-index: 1;
+  animation: sync-modal-enter 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes sync-modal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes sync-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.sync-modal-title {
+  font-family: 'Anton', Impact, sans-serif;
+  font-size: 32px;
+  letter-spacing: 0.15em;
+  color: var(--fg);
+  margin: 0 0 5px;
+}
+
+.sync-modal-subtitle {
+  font-family: 'Special Elite', cursive;
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 30px;
+}
+
+/* Form inputs */
+.sync-input {
+  width: 100%;
+  padding: 12px 15px;
+  background: transparent;
+  border: 1px solid var(--muted);
+  color: var(--fg);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.1em;
+  margin-bottom: 12px;
+  outline: none;
+  transition: border-color 0.2s ease-out;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+}
+
+.sync-input:focus {
+  border-color: var(--fg);
+}
+
+.sync-input::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+/* Error message */
+.sync-error {
+  color: var(--accent);
+  font-family: 'Special Elite', cursive;
+  font-size: 12px;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+/* Action buttons */
+.sync-actions {
+  margin-top: 8px;
+}
+
+.sync-action-btn {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: 2px solid var(--fg);
+  color: var(--fg);
+  font-family: 'Anton', Impact, sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  transition: all 0.15s ease-out;
+}
+
+.sync-action-btn:hover {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.sync-action-btn:active {
+  transform: scale(0.97);
+}
+
+.sync-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Status indicator */
+.sync-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+  font-family: 'Special Elite', cursive;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.sync-status-icon {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--muted);
+  animation: sync-spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.sync-status.success .sync-status-icon {
+  border-color: #4a4;
+  background: #4a4;
+  animation: sync-success-flash 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.sync-status.error .sync-status-icon {
+  border-color: var(--accent);
+  background: var(--accent);
+  animation: none;
+}
+
+/* Disconnect button */
+.sync-logout {
+  margin-top: 25px;
+  padding: 8px 20px;
+  background: transparent;
+  border: 1px solid var(--muted);
+  color: var(--muted);
+  font-family: 'Special Elite', cursive;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.15s ease-out;
+}
+
+.sync-logout:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Modal close button (shared with info modal pattern) */
+#sync-modal .modal-close {
+  position: absolute;
+  top: 12px;
+  right: 15px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 28px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.15s ease-out;
+}
+
+#sync-modal .modal-close:hover {
+  color: var(--fg);
+}
+
+/* Force sync button on favorites page — reuse state-sync-btn with a label */
+.sync-force-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+  margin-bottom: 10px;
+  opacity: 0;
+  transform: translateY(-10px);
+  animation: sync-force-bar-in 0.3s ease-out 0.2s both;
+}
+
+@keyframes sync-force-bar-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sync-force-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid var(--muted);
+  color: var(--muted);
+  font-family: 'Special Elite', cursive;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease-out;
+}
+
+.sync-force-btn:hover {
+  border-color: var(--fg);
+  color: var(--fg);
+}
+
+.sync-force-btn:active {
+  transform: scale(0.97);
+}
+
+.sync-force-btn svg {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sync-force-btn.syncing svg {
+  animation: sync-spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.sync-force-btn.sync-success {
+  border-color: #4a4;
+  color: #4a4;
+}

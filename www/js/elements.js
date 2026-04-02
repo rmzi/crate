@@ -66,7 +66,17 @@ export const elements = {
   miniNextBtn: null,
   miniPlayerInfo: null,
   downloadIndicator: null,
-  syncBtn: null,
+  offlineCacheBtn: null,
+  stateSyncBtn: null,
+  syncModal: null,
+  syncModalClose: null,
+  syncForm: null,
+  syncUsername: null,
+  syncPassword: null,
+  syncError: null,
+  syncSubmit: null,
+  syncStatus: null,
+  syncLogout: null,
   syncProgress: null,
   repeatBtn: null
 };
@@ -134,7 +144,17 @@ export function initElements() {
   elements.miniNextBtn = document.getElementById('mini-next-btn');
   elements.miniPlayerInfo = document.getElementById('mini-player-info');
   elements.downloadIndicator = document.getElementById('download-indicator');
-  elements.syncBtn = document.getElementById('sync-btn');
+  elements.offlineCacheBtn = document.getElementById('offline-cache-btn');
+  elements.stateSyncBtn = document.getElementById('state-sync-btn');
+  elements.syncModal = document.getElementById('sync-modal');
+  elements.syncModalClose = document.getElementById('sync-modal-close');
+  elements.syncForm = document.getElementById('sync-form');
+  elements.syncUsername = document.getElementById('sync-username');
+  elements.syncPassword = document.getElementById('sync-password');
+  elements.syncError = document.getElementById('sync-error');
+  elements.syncSubmit = document.getElementById('sync-submit');
+  elements.syncStatus = document.getElementById('sync-status');
+  elements.syncLogout = document.getElementById('sync-logout');
   elements.syncProgress = document.getElementById('sync-progress');
   elements.repeatBtn = document.getElementById('repeat-btn');
 }

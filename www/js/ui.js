@@ -46,8 +46,13 @@ export function updateModeBasedUI() {
   }
 
   // Sync offline button: secret only
-  if (elements.syncBtn) {
-    elements.syncBtn.classList.toggle('hidden', !isSecret);
+  if (elements.offlineCacheBtn) {
+    elements.offlineCacheBtn.classList.toggle('hidden', !isSecret);
+  }
+
+  // State sync button: available to all users
+  if (elements.stateSyncBtn) {
+    elements.stateSyncBtn.classList.remove('hidden');
   }
 
   // Search trigger: secret only

@@ -7,6 +7,7 @@ import { state, isSecretMode, REPEAT_MODES } from './state.js';
 import { elements } from './elements.js';
 import { seededRandom, escapeHtml, getMediaUrl } from './utils.js';
 import { saveHeardTracks } from './storage.js';
+import { debouncedPush } from './sync.js';
 import { trackEvent } from './analytics.js';
 import { showAuthError } from './ui.js';
 import { networkState, isTrackCached } from './pwa.js';
@@ -82,6 +83,7 @@ export function getNextTrack() {
         // Clear only album track IDs from heardTracks, then loop
         pool.forEach(t => state.heardTracks.delete(t.id));
         saveHeardTracks();
+        debouncedPush();
         return pool[seededRandom(pool.length)];
       }
       return unheard[seededRandom(unheard.length)];
@@ -94,6 +96,7 @@ export function getNextTrack() {
   if (unheard.length === 0) {
     state.heardTracks.clear();
     saveHeardTracks();
+    debouncedPush();
     return pool[seededRandom(pool.length)];
   }
 
@@ -107,6 +110,7 @@ export function getNextTrack() {
 export function markTrackHeard(trackId) {
   state.heardTracks.add(trackId);
   saveHeardTracks();
+  debouncedPush();
   if (updateCatalogProgressFn) {
     updateCatalogProgressFn();
   }

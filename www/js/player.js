@@ -31,6 +31,7 @@ import {
   setPlayTrackFn,
   setUpdateCatalogProgressFn
 } from './tracks.js';
+import { debouncedPush } from './sync.js';
 
 // Track current blob URL for cleanup
 let currentBlobUrl = null;
@@ -688,6 +689,7 @@ export function toggleFavorite() {
     trackEvent('favorite', { track_id: id, artist: state.currentTrack.artist, title: state.currentTrack.title });
   }
   saveFavoriteTracks();
+  debouncedPush();
   updateFavoriteButton();
   updateSyncUI();
   renderTrackList();
@@ -720,13 +722,13 @@ export function toggleFavoritesFilter() {
  * Update sync button and progress bar UI
  */
 export function updateSyncUI() {
-  if (!elements.syncBtn) return;
+  if (!elements.offlineCacheBtn) return;
 
   const allCached = state.favoriteTracks.size > 0 &&
     [...state.favoriteTracks].every(id => state.cachedTracks.has(id));
 
-  elements.syncBtn.classList.toggle('syncing', state.cacheSyncing);
-  elements.syncBtn.classList.toggle('synced', allCached && !state.cacheSyncing);
+  elements.offlineCacheBtn.classList.toggle('syncing', state.cacheSyncing);
+  elements.offlineCacheBtn.classList.toggle('synced', allCached && !state.cacheSyncing);
 
   if (elements.syncProgress) {
     if (state.cacheSyncing && state.cacheSyncProgress) {
