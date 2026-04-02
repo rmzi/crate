@@ -801,6 +801,7 @@ export function init() {
   // State sync button — opens sync modal
   if (elements.stateSyncBtn) {
     elements.stateSyncBtn.addEventListener('click', openSyncModal);
+    elements.stateSyncBtn.classList.remove('hidden');
   }
 
   // Repeat button

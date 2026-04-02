@@ -58,9 +58,6 @@ function serializeState() {
 
 /**
  * Merge remote state into local state (union merge)
- * - Favorites: union (add remote to local)
- * - Heard: union (never un-hear)
- * - Secret: OR (once unlocked, stays unlocked)
  * @param {Object} remote - Deserialized remote state
  * @returns {{favoritesAdded: number, heardAdded: number, secretChanged: boolean}}
  */
@@ -109,14 +106,20 @@ export async function pullState(username, password) {
   try {
     const response = await fetch(`${SYNC_ENDPOINT}/${encodeURIComponent(username)}`);
 
-    if (response.status === 404) {
-      return { status: 'empty' };
-    }
     if (!response.ok) {
       return { status: 'error', error: `Server error: ${response.status}` };
     }
 
     const data = await response.json();
+
+    // Lambda returns 200 for everything to avoid CloudFront error page interception
+    if (data.error) {
+      return { status: 'error', error: data.error };
+    }
+    if (data.found === false) {
+      return { status: 'empty' };
+    }
+
     const key = await deriveKey(password, username);
 
     let plaintext;
@@ -155,8 +158,12 @@ export async function pushState(username, password) {
     });
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      return { status: 'error', error: err.error || `Server error: ${response.status}` };
+      return { status: 'error', error: `Server error: ${response.status}` };
+    }
+
+    const data = await response.json();
+    if (data.error) {
+      return { status: 'error', error: data.error };
     }
 
     return { status: 'ok' };

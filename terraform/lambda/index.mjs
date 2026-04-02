@@ -9,8 +9,8 @@ export async function handler(event) {
   const path = event.rawPath || event.path || '';
   const username = path.replace(/^\/sync\//, '').replace(/\.json$/, '');
 
-  if (!username || username.includes('/') || username.includes('..') || username.length > 64) {
-    return respond(400, { error: 'Invalid username' });
+  if (\!username || username.includes('/') || username.includes('..') || username.length > 64) {
+    return respond(200, { error: 'Invalid username' });
   }
 
   const key = `${PREFIX}${username}.json`;
@@ -20,7 +20,7 @@ export async function handler(event) {
   } else if (method === 'PUT') {
     return handlePut(key, event);
   } else {
-    return respond(405, { error: 'Method not allowed' });
+    return respond(200, { error: 'Method not allowed' });
   }
 }
 
@@ -31,10 +31,10 @@ async function handleGet(key) {
     return respond(200, JSON.parse(body));
   } catch (e) {
     if (e.name === 'NoSuchKey') {
-      return respond(404, { error: 'No sync data found' });
+      return respond(200, { found: false });
     }
     console.error('GET error:', e);
-    return respond(500, { error: 'Internal error' });
+    return respond(200, { error: 'Internal error' });
   }
 }
 
@@ -43,25 +43,25 @@ async function handlePut(key, event) {
   try {
     body = JSON.parse(event.body);
   } catch {
-    return respond(400, { error: 'Invalid JSON' });
+    return respond(200, { error: 'Invalid JSON' });
   }
 
   const { ciphertext, iv, salt, write_hash } = body;
-  if (!ciphertext || !iv || !salt || !write_hash) {
-    return respond(400, { error: 'Missing required fields: ciphertext, iv, salt, write_hash' });
+  if (\!ciphertext || \!iv || \!salt || \!write_hash) {
+    return respond(200, { error: 'Missing required fields: ciphertext, iv, salt, write_hash' });
   }
 
   // Check existing write_hash (if record exists, must match)
   try {
     const existing = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
     const existingData = JSON.parse(await existing.Body.transformToString());
-    if (existingData.write_hash && existingData.write_hash !== write_hash) {
-      return respond(403, { error: 'Invalid credentials' });
+    if (existingData.write_hash && existingData.write_hash \!== write_hash) {
+      return respond(200, { error: 'Invalid credentials' });
     }
   } catch (e) {
-    if (e.name !== 'NoSuchKey') {
+    if (e.name \!== 'NoSuchKey') {
       console.error('Auth check error:', e);
-      return respond(500, { error: 'Internal error' });
+      return respond(200, { error: 'Internal error' });
     }
     // NoSuchKey = new user, allow creation
   }
