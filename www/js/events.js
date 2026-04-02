@@ -560,112 +560,58 @@ function setupFirstInteractionUnlock() {
 }
 
 /**
- * Open the sync modal
+ * Handle sync button click — prompt for credentials or run sync if already connected
  */
-function openSyncModal() {
-  if (!elements.syncModal) return;
+async function handleSyncClick() {
   const creds = getSyncCredentials();
+
   if (creds) {
-    elements.syncUsername.value = creds.username;
-    elements.syncPassword.value = creds.password;
-    elements.syncLogout?.classList.remove('hidden');
-  }
-  elements.syncModal.classList.remove('hidden');
-  if (elements.syncUsername.value) {
-    elements.syncPassword.focus();
-  } else {
-    elements.syncUsername.focus();
-  }
-}
+    // Already connected — do a sync
+    elements.stateSyncBtn?.classList.add('syncing');
+    const result = await fullSync(creds.username, creds.password);
+    elements.stateSyncBtn?.classList.remove('syncing');
 
-/**
- * Close the sync modal
- */
-function closeSyncModal() {
-  if (!elements.syncModal) return;
-  elements.syncModal.classList.add('hidden');
-  if (elements.syncError) elements.syncError.classList.add('hidden');
-  if (elements.syncStatus) elements.syncStatus.classList.add('hidden');
-}
-
-/**
- * Setup sync modal event handlers
- */
-function setupSyncModalHandlers() {
-  if (!elements.syncModal) return;
-
-  if (elements.syncModalClose) {
-    elements.syncModalClose.addEventListener('click', closeSyncModal);
-  }
-
-  // Backdrop closes modal
-  const backdrop = elements.syncModal.querySelector('.sync-modal-backdrop');
-  if (backdrop) {
-    backdrop.addEventListener('click', closeSyncModal);
-  }
-
-  if (elements.syncForm) {
-    elements.syncForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const username = elements.syncUsername.value.trim();
-      const password = elements.syncPassword.value;
-      if (!username || !password) return;
-
-      // Show loading
-      elements.syncSubmit.disabled = true;
-      elements.syncSubmit.textContent = 'SYNCING...';
-      elements.syncError.classList.add('hidden');
-      elements.syncStatus.classList.remove('hidden');
-      elements.syncStatus.classList.remove('success', 'error');
-      elements.syncStatus.querySelector('.sync-status-text').textContent = 'Syncing...';
-      elements.stateSyncBtn?.classList.add('syncing');
-
-      const result = await fullSync(username, password);
-
-      elements.stateSyncBtn?.classList.remove('syncing');
-      elements.syncSubmit.disabled = false;
-      elements.syncSubmit.textContent = 'SYNC';
-
-      if (result.status === 'ok') {
-        saveSyncCredentials(username, password);
-        elements.syncStatus.classList.add('success');
-        elements.syncStatus.querySelector('.sync-status-text').textContent = 'Synced!';
-        elements.stateSyncBtn?.classList.add('connected');
-        elements.syncLogout?.classList.remove('hidden');
-
-        // Flash success on button
-        elements.stateSyncBtn?.classList.add('sync-success');
-        setTimeout(() => elements.stateSyncBtn?.classList.remove('sync-success'), 1500);
-
-        // Refresh UI if state changed
-        if (result.pullResult?.details?.secretChanged) {
-          updateModeBasedUI();
-        }
-        renderTrackList();
-
-        // Auto-close after success
-        setTimeout(closeSyncModal, 1200);
-      } else {
-        elements.syncStatus.classList.add('error');
-        elements.syncStatus.querySelector('.sync-status-text').textContent = result.error || 'Sync failed';
-        elements.syncError.textContent = result.error || 'Sync failed';
-        elements.syncError.classList.remove('hidden');
-
-        elements.stateSyncBtn?.classList.add('sync-error');
-        setTimeout(() => elements.stateSyncBtn?.classList.remove('sync-error'), 1500);
+    if (result.status === 'ok') {
+      elements.stateSyncBtn?.classList.add('sync-success');
+      setTimeout(() => elements.stateSyncBtn?.classList.remove('sync-success'), 1500);
+      if (result.pullResult?.details?.secretChanged) {
+        updateModeBasedUI();
       }
-    });
+    } else {
+      elements.stateSyncBtn?.classList.add('sync-error');
+      setTimeout(() => elements.stateSyncBtn?.classList.remove('sync-error'), 1500);
+      // If credentials are bad, clear them so next click prompts again
+      if (result.error === 'Wrong password' || result.error === 'Invalid credentials') {
+        clearSyncCredentials();
+        elements.stateSyncBtn?.classList.remove('connected');
+      }
+    }
+    return;
   }
 
-  if (elements.syncLogout) {
-    elements.syncLogout.addEventListener('click', () => {
-      clearSyncCredentials();
-      elements.syncUsername.value = '';
-      elements.syncPassword.value = '';
-      elements.stateSyncBtn?.classList.remove('connected');
-      elements.syncLogout.classList.add('hidden');
-      elements.syncStatus.classList.add('hidden');
-    });
+  // No credentials — prompt for them
+  const username = prompt('SYNC USERNAME');
+  if (!username) return;
+
+  const password = prompt('SYNC PASSWORD');
+  if (!password) return;
+
+  elements.stateSyncBtn?.classList.add('syncing');
+  const result = await fullSync(username.trim(), password);
+  elements.stateSyncBtn?.classList.remove('syncing');
+
+  if (result.status === 'ok') {
+    saveSyncCredentials(username.trim(), password);
+    elements.stateSyncBtn?.classList.add('connected');
+    elements.stateSyncBtn?.classList.add('sync-success');
+    setTimeout(() => elements.stateSyncBtn?.classList.remove('sync-success'), 1500);
+    if (result.pullResult?.details?.secretChanged) {
+      updateModeBasedUI();
+    }
+  } else {
+    elements.stateSyncBtn?.classList.add('sync-error');
+    setTimeout(() => elements.stateSyncBtn?.classList.remove('sync-error'), 1500);
+    alert(result.error || 'Sync failed');
   }
 }
 
@@ -675,9 +621,6 @@ function setupSyncModalHandlers() {
 export function init() {
   // Initialize DOM element references
   initElements();
-
-  // Setup sync modal handlers (needs elements initialized first)
-  setupSyncModalHandlers();
 
   // Check version and auto-refresh if stale
   checkVersion();
@@ -798,10 +741,9 @@ export function init() {
     elements.offlineCacheBtn.addEventListener('click', syncFavoritesCache);
   }
 
-  // State sync button — opens sync modal
+  // State sync button — prompt for credentials or run sync if already connected
   if (elements.stateSyncBtn) {
-    elements.stateSyncBtn.addEventListener('click', openSyncModal);
-    elements.stateSyncBtn.classList.remove('hidden');
+    elements.stateSyncBtn.addEventListener('click', handleSyncClick);
   }
 
   // Repeat button

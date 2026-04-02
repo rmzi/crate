@@ -94,3 +94,33 @@ export function saveFavoriteTracks() {
     console.warn('Failed to save favorite tracks:', e);
   }
 }
+
+/**
+ * Save play history to localStorage
+ */
+export function savePlayHistory() {
+  try {
+    localStorage.setItem(CONFIG.STORAGE_KEY.replace('heard_tracks', 'play_history'),
+      JSON.stringify({ history: state.playHistory, index: state.historyIndex }));
+  } catch (e) {
+    console.warn('Failed to save play history:', e);
+  }
+}
+
+/**
+ * Load play history from localStorage
+ */
+export function loadPlayHistory() {
+  try {
+    const stored = localStorage.getItem(CONFIG.STORAGE_KEY.replace('heard_tracks', 'play_history'));
+    if (stored) {
+      const { history, index } = JSON.parse(stored);
+      if (Array.isArray(history)) {
+        state.playHistory = history;
+        state.historyIndex = typeof index === 'number' ? index : history.length - 1;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to load play history:', e);
+  }
+}

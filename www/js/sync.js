@@ -5,7 +5,7 @@
 
 import { state } from './state.js';
 import { CONFIG } from './config.js';
-import { saveFavoriteTracks, saveHeardTracks, setSecretUnlocked } from './storage.js';
+import { saveFavoriteTracks, saveHeardTracks, setSecretUnlocked, savePlayHistory } from './storage.js';
 import { deriveKey, encrypt, decrypt, generateWriteHash } from './crypto.js';
 
 const SYNC_ENDPOINT = '/sync';
@@ -52,6 +52,8 @@ function serializeState() {
     favoriteTracks: [...state.favoriteTracks],
     heardTracks: [...state.heardTracks],
     secretUnlocked: state.secretUnlocked,
+    playHistory: state.playHistory,
+    historyIndex: state.historyIndex,
     syncedAt: new Date().toISOString()
   });
 }
@@ -91,6 +93,12 @@ function mergeState(remote) {
     state.mode = 'secret';
     setSecretUnlocked(true);
     secretChanged = true;
+  }
+
+  if (Array.isArray(remote.playHistory) && remote.playHistory.length > state.playHistory.length) {
+    state.playHistory = remote.playHistory;
+    state.historyIndex = typeof remote.historyIndex === 'number' ? remote.historyIndex : remote.playHistory.length - 1;
+    savePlayHistory();
   }
 
   return { favoritesAdded, heardAdded, secretChanged };

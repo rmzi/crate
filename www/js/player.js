@@ -9,7 +9,7 @@ import { elements } from './elements.js';
 import { formatTime, getMediaUrl } from './utils.js';
 import { trackEvent } from './analytics.js';
 import { setSignedCookies, clearAllCookies } from './cookies.js';
-import { loadHeardTracks, loadFavoriteTracks, saveFavoriteTracks, setSecretUnlocked } from './storage.js';
+import { loadHeardTracks, loadFavoriteTracks, saveFavoriteTracks, setSecretUnlocked, savePlayHistory, loadPlayHistory } from './storage.js';
 import { setTrackInHash } from './hash.js';
 import { showScreen, showError, showAuthError, updateMiniPlayer, updateModeBasedUI } from './ui.js';
 import { getCachedAudio, getCachedTrackIds, removeCachedAudio, syncFavoritesOffline, clearCache } from './cache.js';
@@ -214,6 +214,7 @@ export async function playTrack(track, fromHistory = false, isRetry = false) {
     }
     state.playHistory.push(track.id);
     state.historyIndex = state.playHistory.length - 1;
+    savePlayHistory();
     // Reset retry count for new track
     state.currentRetryAttempts = 0;
   }
@@ -324,6 +325,7 @@ setUpdateCatalogProgressFn(updateCatalogProgress);
 export function playPreviousTrack() {
   if (state.historyIndex > 0) {
     state.historyIndex--;
+    savePlayHistory();
     const trackId = state.playHistory[state.historyIndex];
     const track = state.tracks.find(t => t.id === trackId);
     if (track) {
@@ -339,6 +341,7 @@ export function playNextTrack() {
   // If there's forward history, use it
   if (state.historyIndex < state.playHistory.length - 1) {
     state.historyIndex++;
+    savePlayHistory();
     const trackId = state.playHistory[state.historyIndex];
     const track = state.tracks.find(t => t.id === trackId);
     if (track) {
@@ -618,6 +621,7 @@ export async function startPlayer() {
     await loadManifest();
     loadHeardTracks();
     loadFavoriteTracks();
+    loadPlayHistory();
     updateCatalogProgress();
 
     // Load cached track IDs for offline indicators

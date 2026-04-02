@@ -50,11 +50,6 @@ export function updateModeBasedUI() {
     elements.offlineCacheBtn.classList.toggle('hidden', !isSecret);
   }
 
-  // State sync button: available to all users
-  if (elements.stateSyncBtn) {
-    elements.stateSyncBtn.classList.remove('hidden');
-  }
-
   // Search trigger: secret only
   if (elements.searchTrigger) {
     elements.searchTrigger.style.display = isSecret ? '' : 'none';
