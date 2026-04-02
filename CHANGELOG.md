@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.1.0] - 2026-03-31
+
+### Added
+- Cross-device state sync with zero-knowledge encryption (PBKDF2 + AES-256-GCM)
+- Lambda sync endpoint with S3 storage (`/sync/*` via CloudFront)
+- Client-side crypto module (Web Crypto API) for key derivation, encrypt/decrypt
+- Sync button in player secondary controls (always visible, prompt-based auth)
+- Auto-pull on app load when credentials exist; debounced push on state changes
+- Play history persistence and sync across devices
+- Terraform infrastructure for sync Lambda, IAM, and CloudFront behavior
+
+### Fixed
+- Offline listening broken: unified SW Cache API and IndexedDB cache checks in `isTrackCached()`
+
 ## [0.1.0] - 2026-02-14T01:12:36+00:00
 
 ### Added
