@@ -42,3 +42,8 @@ output "metadata_agent_role_arn" {
   description = "ARN of the IAM role for metadata agent"
   value       = aws_iam_role.metadata_agent.arn
 }
+
+output "sync_lambda_url" {
+  description = "Lambda Function URL for state sync"
+  value       = aws_lambda_function_url.sync.function_url
+}
