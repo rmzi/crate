@@ -577,7 +577,7 @@ function formatListenTime(seconds) {
  */
 function isAdmin() {
   const creds = getSyncCredentials();
-  return creds && creds.username === 'rmzi';
+  return creds && SITE.admin && creds.username === SITE.admin;
 }
 
 /**
@@ -945,7 +945,7 @@ export function init() {
       if (result.status === 'ok') {
         saveSyncCredentials(username, password);
         // Check for admin mode
-        if (username === 'rmzi') {
+        if (SITE.admin && username === SITE.admin) {
           activateAdminMode();
         }
         if (result.pullResult?.details?.secretChanged) {

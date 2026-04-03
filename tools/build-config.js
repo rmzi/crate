@@ -33,6 +33,7 @@ const siteObj = {
   url: frontmatter.url || '',
   password: frontmatter.password || null,
   gaTrackingId: frontmatter.ga_tracking_id || null,
+  admin: frontmatter.admin || null,
   theme: {
     accent: frontmatter.theme?.accent || '#ff0000',
     font: frontmatter.theme?.font || "'Special Elite', cursive",

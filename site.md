@@ -1,6 +1,7 @@
 ---
 name: Crate
 url: https://crate.rmzi.world
+admin: rmzi
 theme:
   circles:
     limbo: "rgba(255,255,255,0.25)"
