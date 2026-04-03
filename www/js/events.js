@@ -573,11 +573,21 @@ function formatListenTime(seconds) {
 }
 
 /**
- * Check if current user is admin (username "rmzi")
+ * Hash a string with SHA-256 (hex output)
  */
-function isAdmin() {
-  const creds = getSyncCredentials();
-  return creds && SITE.admin && creds.username === SITE.admin;
+async function sha256(str) {
+  const encoded = new TextEncoder().encode(str);
+  const hash = await crypto.subtle.digest('SHA-256', encoded);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Check if a username matches the admin hash from site config
+ */
+async function checkAdmin(username) {
+  if (!SITE.admin || !username) return false;
+  const hash = await sha256(username);
+  return hash === SITE.admin;
 }
 
 /**
@@ -945,7 +955,7 @@ export function init() {
       if (result.status === 'ok') {
         saveSyncCredentials(username, password);
         // Check for admin mode
-        if (SITE.admin && username === SITE.admin) {
+        if (await checkAdmin(username)) {
           activateAdminMode();
         }
         if (result.pullResult?.details?.secretChanged) {
@@ -1055,9 +1065,12 @@ export function init() {
     }).catch(() => {});
   }
 
-  // Activate admin mode if logged in as rmzi
-  if (isAdmin()) {
-    activateAdminMode();
+  // Activate admin mode if logged in as admin
+  const syncCredsAdmin = getSyncCredentials();
+  if (syncCredsAdmin) {
+    checkAdmin(syncCredsAdmin.username).then(isAdminUser => {
+      if (isAdminUser) activateAdminMode();
+    });
   }
 
   // Debug strip toggle
