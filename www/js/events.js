@@ -586,7 +586,10 @@ function populateProfile() {
     elements.profileListenTime.textContent = formatListenTime(state.totalListenSeconds);
   }
   if (elements.profileHeard) {
-    elements.profileHeard.textContent = `${state.totalUniqueHeard} / ${state.tracks.length}`;
+    const heard = state.heardTracks.size;
+    const total = state.tracks.length;
+    const pct = total > 0 ? Math.round((heard / total) * 100) : 0;
+    elements.profileHeard.textContent = `${heard} / ${total} (${pct}%)`;
   }
   if (elements.profileFavs) {
     elements.profileFavs.textContent = state.favoriteTracks.size.toString();

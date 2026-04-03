@@ -9,7 +9,7 @@ export async function handler(event) {
   const path = event.rawPath || event.path || '';
   const username = path.replace(/^\/sync\//, '').replace(/\.json$/, '');
 
-  if (\!username || username.includes('/') || username.includes('..') || username.length > 64) {
+  if (!username || username.includes('/') || username.includes('..') || username.length > 64) {
     return respond(200, { error: 'Invalid username' });
   }
 
@@ -47,7 +47,7 @@ async function handlePut(key, event) {
   }
 
   const { ciphertext, iv, salt, write_hash } = body;
-  if (\!ciphertext || \!iv || \!salt || \!write_hash) {
+  if (!ciphertext || !iv || !salt || !write_hash) {
     return respond(200, { error: 'Missing required fields: ciphertext, iv, salt, write_hash' });
   }
 
@@ -55,11 +55,11 @@ async function handlePut(key, event) {
   try {
     const existing = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
     const existingData = JSON.parse(await existing.Body.transformToString());
-    if (existingData.write_hash && existingData.write_hash \!== write_hash) {
+    if (existingData.write_hash && existingData.write_hash !== write_hash) {
       return respond(200, { error: 'Invalid credentials' });
     }
   } catch (e) {
-    if (e.name \!== 'NoSuchKey') {
+    if (e.name !== 'NoSuchKey') {
       console.error('Auth check error:', e);
       return respond(200, { error: 'Internal error' });
     }
