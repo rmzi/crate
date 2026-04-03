@@ -204,10 +204,7 @@
         <div class="profile-sync">
           <!-- Credential form for unconnected users -->
           <div id="profile-creds" class="profile-creds hidden">
-            <h3 class="sync-heading">SYNC ACROSS DEVICES</h3>
-            <input type="text" id="profile-creds-username" class="profile-input" placeholder="username" autocomplete="username" autocapitalize="none" spellcheck="false">
-            <input type="password" id="profile-creds-password" class="profile-input" placeholder="password" autocomplete="current-password">
-            <button id="profile-connect-btn" class="profile-action-btn">CONNECT</button>
+            <button id="profile-connect-btn" class="profile-action-btn">SYNC ACROSS DEVICES</button>
           </div>
 
           <!-- Sync status for connected users -->
@@ -288,6 +285,28 @@
       </div>
     </div>
 
+    <\!-- Sync credentials modal -->
+    <div id="sync-modal" class="modal hidden">
+      <div class="modal-backdrop" id="sync-modal-backdrop"></div>
+      <div class="modal-content sync-modal-content">
+        <button id="sync-modal-close" class="modal-close">&times;</button>
+        <h2 class="sync-modal-title">SYNC ACROSS DEVICES</h2>
+        <p class="sync-modal-subtitle">Save your progress with a username and password.</p>
+        <div class="sync-modal-form">
+          <div class="sync-input-group">
+            <input type="text" id="sync-modal-username" class="sync-modal-input" placeholder="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20">
+            <span class="sync-input-count" id="sync-username-count">0/20</span>
+          </div>
+          <div class="sync-input-group">
+            <input type="password" id="sync-modal-password" class="sync-modal-input" placeholder="password" autocomplete="current-password" maxlength="20">
+            <span class="sync-input-count" id="sync-password-count">0/20</span>
+          </div>
+          <p id="sync-modal-error" class="sync-modal-error hidden"></p>
+          <button id="sync-modal-submit" class="profile-action-btn sync-modal-submit">CONNECT</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Info modal -->
     <div id="info-modal" class="modal hidden">
       <div class="modal-backdrop"></div>
@@ -307,4 +326,5 @@
 
   <script type="module" src="main.js"></script>
 </body>
-</html>
+
+    

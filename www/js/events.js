@@ -71,8 +71,10 @@ setAudioHandlers({
  * @param {KeyboardEvent} e
  */
 function handleKeydown(e) {
-  // Don't handle if typing in search
-  if (document.activeElement === elements.trackSearch) {
+  // Don't handle if typing in search or sync modal inputs
+  if (document.activeElement === elements.trackSearch ||
+      document.activeElement === elements.syncModalUsername ||
+      document.activeElement === elements.syncModalPassword) {
     return;
   }
 
@@ -770,6 +772,180 @@ function populateDebugInfo() {
     serviceWorker: { controlled: !!navigator.serviceWorker?.controller }
   };
   elements.debugOutput.textContent = JSON.stringify(debug, null, 2);
+}
+
+
+/**
+ * Open the sync credentials modal
+ */
+function openSyncModal() {
+  if (!elements.syncModal) return;
+  // Reset form state
+  if (elements.syncModalUsername) elements.syncModalUsername.value = '';
+  if (elements.syncModalPassword) elements.syncModalPassword.value = '';
+  if (elements.syncModalError) {
+    elements.syncModalError.classList.add('hidden');
+    elements.syncModalError.classList.remove('success');
+    elements.syncModalError.textContent = '';
+  }
+  if (elements.syncModalSubmit) {
+    elements.syncModalSubmit.textContent = 'CONNECT';
+    elements.syncModalSubmit.classList.remove('syncing');
+  }
+  if (elements.syncUsernameCount) elements.syncUsernameCount.textContent = '0/20';
+  if (elements.syncPasswordCount) elements.syncPasswordCount.textContent = '0/20';
+  // Remove any invalid state
+  elements.syncModalUsername?.classList.remove('invalid');
+  elements.syncModalPassword?.classList.remove('invalid');
+  elements.syncUsernameCount?.classList.remove('at-limit');
+  elements.syncPasswordCount?.classList.remove('at-limit');
+
+  elements.syncModal.classList.remove('hidden');
+  // Focus username after animation
+  setTimeout(() => elements.syncModalUsername?.focus(), 100);
+}
+
+/**
+ * Close the sync credentials modal
+ */
+function closeSyncModal() {
+  if (elements.syncModal) elements.syncModal.classList.add('hidden');
+}
+
+/**
+ * Validate sync modal inputs. Returns error message or null.
+ */
+function validateSyncInputs(username, password) {
+  if (!username) return 'Username is required';
+  if (!password) return 'Password is required';
+  if (username.length > 20) return 'Username must be 20 characters or less';
+  if (password.length > 20) return 'Password must be 20 characters or less';
+  if (/\s/.test(username)) return 'Username cannot contain spaces';
+  return null;
+}
+
+/**
+ * Update character count display for an input
+ */
+function updateCharCount(input, countEl) {
+  if (!input || !countEl) return;
+  const len = input.value.length;
+  countEl.textContent = len + '/20';
+  countEl.classList.toggle('at-limit', len >= 20);
+}
+
+/**
+ * Setup sync modal event handlers
+ */
+function setupSyncModal() {
+  // Close handlers
+  if (elements.syncModalClose) {
+    elements.syncModalClose.addEventListener('click', closeSyncModal);
+  }
+  if (elements.syncModalBackdrop) {
+    elements.syncModalBackdrop.addEventListener('click', closeSyncModal);
+  }
+
+  // Character count updates
+  if (elements.syncModalUsername) {
+    elements.syncModalUsername.addEventListener('input', () => {
+      updateCharCount(elements.syncModalUsername, elements.syncUsernameCount);
+      elements.syncModalUsername.classList.remove('invalid');
+      if (elements.syncModalError) elements.syncModalError.classList.add('hidden');
+    });
+  }
+  if (elements.syncModalPassword) {
+    elements.syncModalPassword.addEventListener('input', () => {
+      updateCharCount(elements.syncModalPassword, elements.syncPasswordCount);
+      elements.syncModalPassword.classList.remove('invalid');
+      if (elements.syncModalError) elements.syncModalError.classList.add('hidden');
+    });
+  }
+
+  // Submit via Enter key
+  [elements.syncModalUsername, elements.syncModalPassword].forEach(input => {
+    if (input) {
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleSyncSubmit();
+        }
+      });
+    }
+  });
+
+  // Submit button
+  if (elements.syncModalSubmit) {
+    elements.syncModalSubmit.addEventListener('click', handleSyncSubmit);
+  }
+}
+
+/**
+ * Handle sync modal form submission
+ */
+async function handleSyncSubmit() {
+  const username = elements.syncModalUsername?.value?.trim();
+  const password = elements.syncModalPassword?.value;
+
+  // Validate
+  const error = validateSyncInputs(username, password);
+  if (error) {
+    if (elements.syncModalError) {
+      elements.syncModalError.textContent = error;
+      elements.syncModalError.classList.remove('hidden', 'success');
+    }
+    // Mark empty fields as invalid
+    if (!username) elements.syncModalUsername?.classList.add('invalid');
+    if (!password) elements.syncModalPassword?.classList.add('invalid');
+    return;
+  }
+
+  // Disable form during submit
+  if (elements.syncModalSubmit) {
+    elements.syncModalSubmit.classList.add('syncing');
+    elements.syncModalSubmit.textContent = 'CONNECTING...';
+  }
+
+  const result = await fullSync(username, password);
+  state.lastSyncResult = result;
+
+  if (result.status === 'ok') {
+    saveSyncCredentials(username, password);
+
+    // Show success briefly
+    if (elements.syncModalError) {
+      elements.syncModalError.textContent = 'Connected!';
+      elements.syncModalError.classList.remove('hidden');
+      elements.syncModalError.classList.add('success');
+    }
+    if (elements.syncModalSubmit) {
+      elements.syncModalSubmit.textContent = 'CONNECTED';
+    }
+
+    // Check for admin mode
+    if (await checkAdmin(username)) {
+      activateAdminMode();
+    }
+    if (result.pullResult?.details?.secretChanged) {
+      updateModeBasedUI();
+    }
+
+    // Close modal after brief success display
+    setTimeout(() => {
+      closeSyncModal();
+      populateProfile();
+    }, 800);
+  } else {
+    // Show error
+    if (elements.syncModalSubmit) {
+      elements.syncModalSubmit.classList.remove('syncing');
+      elements.syncModalSubmit.textContent = 'CONNECT';
+    }
+    if (elements.syncModalError) {
+      elements.syncModalError.textContent = result.error || 'Connection failed';
+      elements.syncModalError.classList.remove('hidden', 'success');
+    }
+  }
 }
 
 /**

@@ -88,12 +88,20 @@ export const elements = {
   // Circle progress
   circleProgress: null,
   circleMarks: null,
-  // Profile credentials form
+  // Profile connect / sync info
   profileCreds: null,
-  profileCredsUsername: null,
-  profileCredsPassword: null,
   profileConnectBtn: null,
   profileSyncInfo: null,
+  // Sync modal
+  syncModal: null,
+  syncModalBackdrop: null,
+  syncModalClose: null,
+  syncModalUsername: null,
+  syncModalPassword: null,
+  syncUsernameCount: null,
+  syncPasswordCount: null,
+  syncModalError: null,
+  syncModalSubmit: null,
   // Debug strip
   debugStrip: null,
   debugStripCircle: null,
@@ -187,10 +195,17 @@ export function initElements() {
   elements.circleProgress = document.getElementById('circle-progress');
   elements.circleMarks = document.getElementById('circle-marks');
   elements.profileCreds = document.getElementById('profile-creds');
-  elements.profileCredsUsername = document.getElementById('profile-creds-username');
-  elements.profileCredsPassword = document.getElementById('profile-creds-password');
   elements.profileConnectBtn = document.getElementById('profile-connect-btn');
   elements.profileSyncInfo = document.getElementById('profile-sync-info');
+  elements.syncModal = document.getElementById('sync-modal');
+  elements.syncModalBackdrop = document.getElementById('sync-modal-backdrop');
+  elements.syncModalClose = document.getElementById('sync-modal-close');
+  elements.syncModalUsername = document.getElementById('sync-modal-username');
+  elements.syncModalPassword = document.getElementById('sync-modal-password');
+  elements.syncUsernameCount = document.getElementById('sync-username-count');
+  elements.syncPasswordCount = document.getElementById('sync-password-count');
+  elements.syncModalError = document.getElementById('sync-modal-error');
+  elements.syncModalSubmit = document.getElementById('sync-modal-submit');
   elements.debugStrip = document.getElementById('debug-strip');
   elements.debugStripCircle = document.getElementById('debug-strip-circle');
   elements.debugStripHeard = document.getElementById('debug-strip-heard');

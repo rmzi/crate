@@ -2393,6 +2393,110 @@ body::after {
   margin-top: 8px;
 }
 
+/* Sync credentials modal */
+.sync-modal-content {
+  max-width: 400px;
+  padding: 32px;
+  text-align: center;
+}
+
+.sync-modal-title {
+  font-family: var(--title-font);
+  font-size: 28px;
+  letter-spacing: 0.05em;
+  color: var(--fg);
+  margin: 0 0 8px 0;
+}
+
+.sync-modal-subtitle {
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0 0 24px 0;
+  letter-spacing: 0.05em;
+}
+
+.sync-modal-form {
+  text-align: left;
+}
+
+.sync-input-group {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.sync-modal-input {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--muted);
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 16px;
+  letter-spacing: 0.05em;
+  padding: 12px 40px 12px 0;
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.sync-modal-input::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.sync-modal-input:focus {
+  border-bottom-color: var(--fg);
+}
+
+.sync-modal-input.invalid {
+  border-bottom-color: #f87171;
+}
+
+.sync-input-count {
+  position: absolute;
+  right: 0;
+  bottom: 14px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.sync-modal-input:focus ~ .sync-input-count {
+  opacity: 1;
+}
+
+.sync-input-count.at-limit {
+  color: #f87171;
+  opacity: 1;
+}
+
+.sync-modal-error {
+  font-family: var(--font);
+  font-size: 13px;
+  color: #f87171;
+  margin: 0 0 12px 0;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+.sync-modal-error.hidden {
+  display: none;
+}
+
+.sync-modal-error.success {
+  color: #4ade80;
+}
+
+.sync-modal-submit {
+  width: 100%;
+  margin-top: 8px;
+}
+
 /* DEBUG STYLES — REMOVE BEFORE RELEASE */
 .profile-debug {
   margin-top: 40px;
