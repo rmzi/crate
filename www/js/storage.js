@@ -133,7 +133,8 @@ export function saveListenStats() {
     localStorage.setItem(CONFIG.STATS_KEY, JSON.stringify({
       totalListenSeconds: state.totalListenSeconds,
       totalUniqueHeard: state.totalUniqueHeard,
-      lastPlayedAt: state.lastPlayedAt
+      lastPlayedAt: state.lastPlayedAt,
+      currentCircle: state.currentCircle
     }));
   } catch (e) {
     console.warn('Failed to save listen stats:', e);
@@ -151,6 +152,7 @@ export function loadListenStats() {
       state.totalListenSeconds = data.totalListenSeconds || 0;
       state.totalUniqueHeard = data.totalUniqueHeard || 0;
       state.lastPlayedAt = data.lastPlayedAt || null;
+      state.currentCircle = data.currentCircle || null;
     }
   } catch (e) {
     console.warn('Failed to load listen stats:', e);

@@ -32,6 +32,8 @@ import {
   setUpdateCatalogProgressFn
 } from './tracks.js';
 import { debouncedPush } from './sync.js';
+import { applyCircleTheme, getCurrentCircle } from './circles.js';
+import { startGenArt, stopGenArt } from './genart.js';
 
 // Track current blob URL for cleanup
 let currentBlobUrl = null;
@@ -116,6 +118,7 @@ export function updateArtwork(track) {
   if (!elements.artworkContainer || !elements.artworkImage) return;
 
   if (track.artwork) {
+    stopGenArt();
     elements.artworkImage.src = getMediaUrl(track.artwork);
     elements.artworkImage.alt = `${track.artist || 'Unknown'} - ${track.album || 'Unknown'}`;
     elements.artworkContainer.classList.remove('no-art');
@@ -123,6 +126,10 @@ export function updateArtwork(track) {
     elements.artworkImage.src = '';
     elements.artworkImage.alt = '';
     elements.artworkContainer.classList.add('no-art');
+    // Start generative art placeholder
+    if (elements.artworkCanvas) {
+      startGenArt(elements.artworkCanvas, track);
+    }
   }
 }
 
@@ -165,7 +172,7 @@ function searchFor(query) {
  * Setup clickable metadata for search
  */
 function setupClickableMetadata() {
-  const clickables = [elements.artist, elements.artworkImage];
+  const clickables = [elements.artist, elements.artworkContainer];
 
   if (isSecretMode()) {
     // Add clickable class and handlers in secret mode
@@ -173,8 +180,8 @@ function setupClickableMetadata() {
       if (el) el.classList.add('clickable');
     });
     elements.artist.onclick = () => searchFor(state.currentTrack?.artist);
-    if (elements.artworkImage) {
-      elements.artworkImage.onclick = () => {
+    if (elements.artworkContainer) {
+      elements.artworkContainer.onclick = () => {
         if (state.artworkLongPressTriggered) {
           state.artworkLongPressTriggered = false;
           return;
@@ -640,6 +647,10 @@ export async function startPlayer() {
     loadFavoriteTracks();
     loadPlayHistory();
     loadListenStats();
+    // Restore saved circle theme
+    const circleToApply = state.currentCircle || getCurrentCircle(state.totalUniqueHeard).id;
+    state.currentCircle = circleToApply;
+    applyCircleTheme(circleToApply);
     updateCatalogProgress();
 
     // Load cached track IDs for offline indicators

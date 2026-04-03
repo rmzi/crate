@@ -7,7 +7,7 @@ import { MODES } from './config.js';
 import { SITE } from './site.config.js';
 import { state, isSecretMode } from './state.js';
 import { elements, initElements } from './elements.js';
-import { getSecretUnlocked, setSecretUnlocked } from './storage.js';
+import { getSecretUnlocked, setSecretUnlocked, saveListenStats } from './storage.js';
 import { clearAllCookies } from './cookies.js';
 import { trackEvent } from './analytics.js';
 import { getTrackPathFromHash } from './hash.js';
@@ -52,6 +52,7 @@ import {
 } from './player.js';
 import { initPWA, setOfflineChangeCallback } from './pwa.js';
 import { fullSync, getSyncCredentials, saveSyncCredentials, clearSyncCredentials, pullState } from './sync.js';
+import { getCurrentCircle, getUnlockedCircles, applyCircleTheme, getCircleIndex, CIRCLES } from './circles.js';
 
 // Set up cross-module function references
 setStartPlayerFn(startPlayer);
@@ -226,18 +227,18 @@ function setupPlayerSwipeHandlers() {
  * Setup long-press to download on artwork (desktop only)
  */
 function setupArtworkLongPress() {
-  if (!elements.artworkImage) return;
+  if (!elements.artworkContainer) return;
 
   let pressTimer = null;
 
-  elements.artworkImage.addEventListener('mousedown', (e) => {
+  elements.artworkContainer.addEventListener('mousedown', (e) => {
     if (!isSecretMode() || !state.currentTrack) return;
     e.preventDefault();
 
-    elements.artworkImage.classList.add('holding');
+    elements.artworkContainer.classList.add('holding');
     pressTimer = setTimeout(() => {
       state.artworkLongPressTriggered = true;
-      elements.artworkImage.classList.remove('holding');
+      elements.artworkContainer.classList.remove('holding');
       downloadTrack(state.currentTrack, 'long_press');
     }, 1500);
   });
@@ -245,11 +246,11 @@ function setupArtworkLongPress() {
   function cancelPress() {
     clearTimeout(pressTimer);
     pressTimer = null;
-    elements.artworkImage.classList.remove('holding');
+    elements.artworkContainer.classList.remove('holding');
   }
 
-  elements.artworkImage.addEventListener('mouseup', cancelPress);
-  elements.artworkImage.addEventListener('mouseleave', cancelPress);
+  elements.artworkContainer.addEventListener('mouseup', cancelPress);
+  elements.artworkContainer.addEventListener('mouseleave', cancelPress);
 }
 
 /**
@@ -603,38 +604,74 @@ function populateProfile() {
     }
   }
 
-  // Sync status
-  if (elements.profileSyncDot) {
-    elements.profileSyncDot.className = 'sync-status-dot';
-    if (creds) {
+  // Circle progress
+  if (elements.circleProgress && elements.circleMarks) {
+    const currentCircle = state.currentCircle || getCurrentCircle(state.totalUniqueHeard).id;
+    const unlocked = getUnlockedCircles(state.totalUniqueHeard);
+    const unlockedIds = new Set(unlocked.map(c => c.id));
+
+    elements.circleMarks.innerHTML = CIRCLES.map(circle => {
+      const isUnlocked = unlockedIds.has(circle.id);
+      const isCurrent = circle.id === currentCircle;
+      const classes = ['circle-mark'];
+      if (isUnlocked) classes.push('unlocked');
+      if (isCurrent) classes.push('current');
+      return `<div class="${classes.join(' ')}" data-circle="${circle.id}" title="${circle.threshold} tracks"></div>`;
+    }).join('');
+
+    elements.circleProgress.classList.remove('hidden');
+
+    // Bind click handlers for unlocked marks
+    elements.circleMarks.querySelectorAll('.circle-mark.unlocked').forEach(mark => {
+      mark.addEventListener('click', () => {
+        const circleId = mark.dataset.circle;
+        state.currentCircle = circleId;
+        applyCircleTheme(circleId);
+        saveListenStats();
+        populateProfile(); // Re-render to update current highlight
+      });
+    });
+  }
+
+  // Sync section: show creds form or sync info
+  if (creds) {
+    // Connected — show sync info, hide creds form
+    if (elements.profileCreds) elements.profileCreds.classList.add('hidden');
+    if (elements.profileSyncInfo) elements.profileSyncInfo.classList.remove('hidden');
+
+    // Sync status
+    if (elements.profileSyncDot) {
+      elements.profileSyncDot.className = 'sync-status-dot';
       elements.profileSyncDot.classList.add(state.lastSyncResult?.status === 'error' ? 'error' : 'connected');
     }
-  }
-  if (elements.profileSyncStatus) {
-    if (!creds) {
-      elements.profileSyncStatus.textContent = 'Not connected';
-    } else if (state.lastSyncResult?.status === 'error') {
-      elements.profileSyncStatus.textContent = 'Sync error';
-    } else {
-      elements.profileSyncStatus.textContent = 'Connected';
+    if (elements.profileSyncStatus) {
+      if (state.lastSyncResult?.status === 'error') {
+        elements.profileSyncStatus.textContent = 'Sync error';
+      } else {
+        elements.profileSyncStatus.textContent = 'Connected';
+      }
     }
-  }
-  if (elements.profileSyncDetail) {
-    if (state.lastSyncResult?.error) {
-      elements.profileSyncDetail.textContent = state.lastSyncResult.error;
-    } else if (state.lastSyncResult?.status === 'ok') {
-      elements.profileSyncDetail.textContent = 'Last sync: ' + new Date().toLocaleTimeString();
-    } else {
-      elements.profileSyncDetail.textContent = '';
+    if (elements.profileSyncDetail) {
+      if (state.lastSyncResult?.error) {
+        elements.profileSyncDetail.textContent = state.lastSyncResult.error;
+      } else if (state.lastSyncResult?.status === 'ok') {
+        elements.profileSyncDetail.textContent = 'Last sync: ' + new Date().toLocaleTimeString();
+      } else {
+        elements.profileSyncDetail.textContent = '';
+      }
     }
+  } else {
+    // Not connected — show creds form, hide sync info
+    if (elements.profileCreds) elements.profileCreds.classList.remove('hidden');
+    if (elements.profileSyncInfo) elements.profileSyncInfo.classList.add('hidden');
   }
 
   // Show/hide sync actions based on connection state
   if (elements.profileSyncBtn) {
-    elements.profileSyncBtn.textContent = creds ? 'SYNC NOW' : 'CONNECT';
+    elements.profileSyncBtn.textContent = 'SYNC NOW';
   }
   if (elements.profileDisconnectBtn) {
-    elements.profileDisconnectBtn.style.display = creds ? '' : 'none';
+    elements.profileDisconnectBtn.style.display = '';
   }
 
   // DEBUG: populate debug info
@@ -651,7 +688,8 @@ function populateDebugInfo() {
     stats: {
       totalListenSeconds: state.totalListenSeconds,
       totalUniqueHeard: state.totalUniqueHeard,
-      lastPlayedAt: state.lastPlayedAt
+      lastPlayedAt: state.lastPlayedAt,
+      currentCircle: state.currentCircle
     },
     state: {
       heardTracks: state.heardTracks.size,
@@ -695,25 +733,10 @@ export function init() {
   state.pendingTrackPath = getTrackPathFromHash();
 
   // Bind event listeners
-  async function handleEnterWithCreds() {
-    // If new user with credential inputs visible
-    if (elements.enterCreds && !elements.enterCreds.classList.contains('hidden')) {
-      const username = elements.enterUserInput?.value?.trim();
-      const password = elements.enterPassInput?.value;
-      if (username && password) {
-        saveSyncCredentials(username, password);
-        // Non-blocking sync after enter
-        fullSync(username, password).then(result => {
-          state.lastSyncResult = result;
-        }).catch(() => {});
-      }
-    }
-    handleEnter();
-  }
-  elements.enterBtn.addEventListener('click', handleEnterWithCreds);
+  elements.enterBtn.addEventListener('click', handleEnter);
   elements.enterBtn.addEventListener('touchend', (e) => {
     e.preventDefault();
-    handleEnterWithCreds();
+    handleEnter();
   });
   if (elements.backBtn) {
     elements.backBtn.addEventListener('click', playPreviousTrack);
@@ -827,53 +850,66 @@ export function init() {
     });
   }
 
-  // Profile sync button — connect or force sync
+  // Profile sync button — force sync (only visible when connected)
   if (elements.profileSyncBtn) {
     elements.profileSyncBtn.addEventListener('click', async () => {
       const creds = getSyncCredentials();
+      if (!creds) return; // Shouldn't happen — button only visible when connected
 
-      if (creds) {
-        // Force sync
-        elements.profileSyncBtn.classList.add('syncing');
-        elements.profileSyncBtn.textContent = 'SYNCING...';
-        if (elements.profileSyncDot) elements.profileSyncDot.className = 'sync-status-dot syncing';
+      elements.profileSyncBtn.classList.add('syncing');
+      elements.profileSyncBtn.textContent = 'SYNCING...';
+      if (elements.profileSyncDot) elements.profileSyncDot.className = 'sync-status-dot syncing';
 
-        const result = await fullSync(creds.username, creds.password);
-        state.lastSyncResult = result;
+      const result = await fullSync(creds.username, creds.password);
+      state.lastSyncResult = result;
 
-        elements.profileSyncBtn.classList.remove('syncing');
-        populateProfile();
+      elements.profileSyncBtn.classList.remove('syncing');
+      populateProfile();
 
-        if (result.status === 'ok' && result.pullResult?.details?.secretChanged) {
+      if (result.status === 'ok' && result.pullResult?.details?.secretChanged) {
+        updateModeBasedUI();
+      }
+    });
+  }
+
+  // Profile connect button — inline credential form
+  if (elements.profileConnectBtn) {
+    elements.profileConnectBtn.addEventListener('click', async () => {
+      const username = elements.profileCredsUsername?.value?.trim();
+      const password = elements.profileCredsPassword?.value;
+
+      if (!username || !password) return;
+
+      elements.profileConnectBtn.classList.add('syncing');
+      elements.profileConnectBtn.textContent = 'CONNECTING...';
+
+      const result = await fullSync(username, password);
+      state.lastSyncResult = result;
+
+      elements.profileConnectBtn.classList.remove('syncing');
+      elements.profileConnectBtn.textContent = 'CONNECT';
+
+      if (result.status === 'ok') {
+        saveSyncCredentials(username, password);
+        if (result.pullResult?.details?.secretChanged) {
           updateModeBasedUI();
         }
       } else {
-        // No credentials — prompt
-        const username = prompt('SYNC USERNAME');
-        if (!username) return;
-        const password = prompt('SYNC PASSWORD');
-        if (!password) return;
-
-        elements.profileSyncBtn.classList.add('syncing');
-        elements.profileSyncBtn.textContent = 'CONNECTING...';
-        if (elements.profileSyncDot) elements.profileSyncDot.className = 'sync-status-dot syncing';
-
-        const result = await fullSync(username.trim(), password);
-        state.lastSyncResult = result;
-
-        elements.profileSyncBtn.classList.remove('syncing');
-
-        if (result.status === 'ok') {
-          saveSyncCredentials(username.trim(), password);
-          if (result.pullResult?.details?.secretChanged) {
-            updateModeBasedUI();
-          }
-        } else {
-          alert(result.error || 'Connection failed');
-        }
-
-        populateProfile();
+        // Show error inline — briefly flash the input border red
+        elements.profileCredsUsername.style.borderBottomColor = '#f87171';
+        elements.profileCredsPassword.style.borderBottomColor = '#f87171';
+        setTimeout(() => {
+          elements.profileCredsUsername.style.borderBottomColor = '';
+          elements.profileCredsPassword.style.borderBottomColor = '';
+        }, 2000);
+        return;
       }
+
+      // Clear inputs
+      if (elements.profileCredsUsername) elements.profileCredsUsername.value = '';
+      if (elements.profileCredsPassword) elements.profileCredsPassword.value = '';
+
+      populateProfile();
     });
   }
 
@@ -943,18 +979,9 @@ export function init() {
     filterTracks(state.searchQuery);
   });
 
-  // Enter screen personalization
+  // Auto-sync on load if credentials exist
   const syncCreds = getSyncCredentials();
   if (syncCreds) {
-    // Returning user — show welcome
-    if (elements.enterGreeting) {
-      elements.enterGreeting.classList.remove('hidden');
-    }
-    if (elements.enterUsernameDisplay) {
-      elements.enterUsernameDisplay.textContent = syncCreds.username;
-      elements.enterUsernameDisplay.classList.remove('hidden');
-    }
-    // Auto-pull in background
     pullState(syncCreds.username, syncCreds.password).then(result => {
       state.lastSyncResult = result;
       if (result.status === 'merged' && result.details) {
@@ -966,13 +993,5 @@ export function init() {
         }
       }
     }).catch(() => {});
-  } else {
-    // New user — show credential inputs
-    if (elements.enterCreds) {
-      elements.enterCreds.classList.remove('hidden');
-    }
-    if (elements.enterBtn) {
-      elements.enterBtn.textContent = 'CONNECT';
-    }
   }
 }

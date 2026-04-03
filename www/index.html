@@ -46,12 +46,6 @@
           <span class="konami-arrow">■</span>
           <span class="konami-arrow">■</span>
         </div>
-        <p id="enter-greeting" class="enter-greeting hidden">WELCOME BACK</p>
-        <span id="enter-username-display" class="enter-username-display hidden"></span>
-        <div id="enter-creds" class="enter-creds hidden">
-          <input id="enter-user-input" type="text" placeholder="USERNAME" autocomplete="username" autocapitalize="off" spellcheck="false">
-          <input id="enter-pass-input" type="password" placeholder="PASSWORD" autocomplete="current-password">
-        </div>
         <button id="enter-btn">ENTER</button>
       </div>
     </div>
@@ -64,6 +58,7 @@
         <!-- Album artwork -->
         <div id="artwork-container" class="artwork-container no-art">
           <img id="artwork-image" src="" alt="" class="artwork-image">
+          <canvas id="artwork-canvas" class="artwork-canvas" width="440" height="440"></canvas>
         </div>
 
         <!-- Right side wrapper for desktop layout -->
@@ -200,15 +195,32 @@
           </div>
         </div>
 
+        <!-- Circle progress: 9 marks for Dante's circles -->
+        <div id="circle-progress" class="circle-progress hidden">
+          <div class="circle-marks" id="circle-marks"></div>
+        </div>
+
+        <!-- Sync section: shows credential form OR sync status -->
         <div class="profile-sync">
-          <div class="sync-status-row">
-            <span class="sync-status-dot" id="profile-sync-dot"></span>
-            <span id="profile-sync-status" class="sync-status-text">Not connected</span>
+          <!-- Credential form for unconnected users -->
+          <div id="profile-creds" class="profile-creds hidden">
+            <h3 class="sync-heading">SYNC ACROSS DEVICES</h3>
+            <input type="text" id="profile-creds-username" class="profile-input" placeholder="username" autocomplete="username" autocapitalize="none" spellcheck="false">
+            <input type="password" id="profile-creds-password" class="profile-input" placeholder="password" autocomplete="current-password">
+            <button id="profile-connect-btn" class="profile-action-btn">CONNECT</button>
           </div>
-          <p id="profile-sync-detail" class="sync-detail"></p>
-          <div class="profile-sync-actions">
-            <button id="profile-sync-btn" class="profile-action-btn">SYNC NOW</button>
-            <button id="profile-disconnect-btn" class="profile-action-btn danger">DISCONNECT</button>
+
+          <!-- Sync status for connected users -->
+          <div id="profile-sync-info" class="hidden">
+            <div class="sync-status-row">
+              <span class="sync-status-dot" id="profile-sync-dot"></span>
+              <span id="profile-sync-status" class="sync-status-text">Not connected</span>
+            </div>
+            <p id="profile-sync-detail" class="sync-detail"></p>
+            <div class="profile-sync-actions">
+              <button id="profile-sync-btn" class="profile-action-btn">SYNC NOW</button>
+              <button id="profile-disconnect-btn" class="profile-action-btn danger">DISCONNECT</button>
+            </div>
           </div>
         </div>
 

@@ -81,6 +81,7 @@ export const state = {
   totalListenSeconds: 0,
   totalUniqueHeard: 0,
   lastPlayedAt: null,
+  currentCircle: null,
   // Sync tracking
   lastSyncResult: null,
   _playStartTime: null,

@@ -37,6 +37,7 @@ export const elements = {
   konamiProgress: null,
   artworkContainer: null,
   artworkImage: null,
+  artworkCanvas: null,
   passwordContainer: null,
   passwordInput: null,
   passwordError: null,
@@ -84,12 +85,15 @@ export const elements = {
   profileSyncBtn: null,
   profileDisconnectBtn: null,
   debugOutput: null,
-  // Enter screen personalization
-  enterGreeting: null,
-  enterUsernameDisplay: null,
-  enterCreds: null,
-  enterUserInput: null,
-  enterPassInput: null
+  // Circle progress
+  circleProgress: null,
+  circleMarks: null,
+  // Profile credentials form
+  profileCreds: null,
+  profileCredsUsername: null,
+  profileCredsPassword: null,
+  profileConnectBtn: null,
+  profileSyncInfo: null,
 };
 
 /**
@@ -126,6 +130,7 @@ export function initElements() {
   elements.konamiProgress = document.getElementById('konami-progress');
   elements.artworkContainer = document.getElementById('artwork-container');
   elements.artworkImage = document.getElementById('artwork-image');
+  elements.artworkCanvas = document.getElementById('artwork-canvas');
   elements.passwordContainer = document.getElementById('password-container');
   elements.passwordInput = document.getElementById('password-input');
   elements.passwordError = document.getElementById('password-error');
@@ -172,9 +177,11 @@ export function initElements() {
   elements.profileSyncBtn = document.getElementById('profile-sync-btn');
   elements.profileDisconnectBtn = document.getElementById('profile-disconnect-btn');
   elements.debugOutput = document.getElementById('debug-output');
-  elements.enterGreeting = document.getElementById('enter-greeting');
-  elements.enterUsernameDisplay = document.getElementById('enter-username-display');
-  elements.enterCreds = document.getElementById('enter-creds');
-  elements.enterUserInput = document.getElementById('enter-user-input');
-  elements.enterPassInput = document.getElementById('enter-pass-input');
+  elements.circleProgress = document.getElementById('circle-progress');
+  elements.circleMarks = document.getElementById('circle-marks');
+  elements.profileCreds = document.getElementById('profile-creds');
+  elements.profileCredsUsername = document.getElementById('profile-creds-username');
+  elements.profileCredsPassword = document.getElementById('profile-creds-password');
+  elements.profileConnectBtn = document.getElementById('profile-connect-btn');
+  elements.profileSyncInfo = document.getElementById('profile-sync-info');
 }

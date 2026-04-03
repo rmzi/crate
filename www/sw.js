@@ -4,7 +4,7 @@
  * artwork (cache-first), audio (cache-first + cache-on-play)
  */
 
-const SHELL_CACHE = 'shell-v3';
+const SHELL_CACHE = 'shell-v4';
 const MANIFEST_CACHE = 'manifest-v1';
 const ARTWORK_CACHE = 'artwork-v1';
 const AUDIO_CACHE = 'audio-v1';
@@ -25,6 +25,7 @@ const SHELL_ASSETS = [
   '/js/cookies.js',
   '/js/elements.js',
   '/js/events.js',
+  '/js/genart.js',
   '/js/hash.js',
   '/js/konami.js',
   '/js/player.js',
@@ -33,11 +34,14 @@ const SHELL_ASSETS = [
   '/js/storage.js',
   '/js/sync.js',
   '/js/crypto.js',
+  '/js/circles.js',
   '/js/tracks.js',
   '/js/ui.js',
   '/js/utils.js',
   '/js/version.js',
   '/js/voice.js',
+  '/img/benj_front.jpeg',
+  '/img/benj_back.jpeg',
   '/favicon.svg',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
@@ -61,7 +65,8 @@ function isShellRequest(url) {
     p.endsWith('.css') ||
     (p.endsWith('.js') && !p.startsWith('/audio/')) ||
     p.startsWith('/icons/') ||
-    p.startsWith('/favicon');
+    p.startsWith('/favicon') ||
+    p.startsWith('/img/');
 }
 
 function isManifestRequest(url) {

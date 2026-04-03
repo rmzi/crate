@@ -48,7 +48,17 @@ html {
 
 body {
   background-color: var(--bg);
-  background-image: none;
+  background-image:
+    radial-gradient(ellipse at 30% 20%, rgba(80, 0, 0, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(40, 0, 60, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at center, #1a1a1a 0%, #000 70%),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255,255,255,0.015) 2px,
+      rgba(255,255,255,0.015) 4px
+    );
   color: var(--fg);
   font-family: var(--font);
   font-size: 14px;
@@ -56,7 +66,53 @@ body {
   position: relative;
 }
 
-/* Background effects (customize for your theme) */
+/* Smoke background — colors driven by CSS custom properties for circle themes */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  inset: -50%;
+  pointer-events: none;
+  z-index: -1;
+}
+
+body::before {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 80%, var(--smoke-1, rgba(255,255,255,0.25)) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 80% 20%, var(--smoke-2, rgba(255,255,255,0.22)) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 60% at 50% 50%, var(--smoke-3, rgba(255,255,255,0.18)) 0%, transparent 40%);
+  animation: smoke1 12s ease-in-out infinite;
+  filter: blur(50px);
+}
+
+body::after {
+  background:
+    radial-gradient(ellipse 70% 55% at 70% 70%, var(--smoke-2, rgba(255,255,255,0.22)) 0%, transparent 45%),
+    radial-gradient(ellipse 55% 45% at 30% 30%, var(--smoke-3, rgba(255,255,255,0.18)) 0%, transparent 50%),
+    radial-gradient(ellipse 45% 70% at 60% 40%, var(--smoke-1, rgba(255,255,255,0.15)) 0%, transparent 40%);
+  animation: smoke2 15s ease-in-out infinite;
+  filter: blur(60px);
+}
+
+@keyframes smoke1 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.9; }
+  25% { transform: translate(8%, -5%) scale(1.1); opacity: 1; }
+  50% { transform: translate(-5%, 8%) scale(0.9); opacity: 0.7; }
+  75% { transform: translate(6%, 3%) scale(1.05); opacity: 1; }
+}
+
+@keyframes smoke2 {
+  0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 0.8; }
+  33% { transform: translate(-6%, 6%) scale(1.08) rotate(3deg); opacity: 1; }
+  66% { transform: translate(5%, -4%) scale(0.92) rotate(-2deg); opacity: 0.85; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  body::after {
+    animation: none;
+  }
+}
 
 #app {
   height: 100%;
@@ -176,62 +232,6 @@ body {
   display: none;
 }
 
-/* Enter screen - credentials and greeting */
-.enter-greeting {
-  font-family: var(--font);
-  font-size: clamp(14px, 2vh, 20px);
-  color: var(--muted);
-  letter-spacing: 0.15em;
-  margin: 0 0 4px 0;
-  opacity: 0;
-  animation: fadeIn 1.5s ease-out 0.3s forwards;
-}
-
-.enter-username-display {
-  font-family: var(--font);
-  font-size: clamp(12px, 1.5vh, 16px);
-  color: var(--fg);
-  letter-spacing: 0.1em;
-  margin: 0 0 16px 0;
-  display: block;
-  text-align: center;
-  opacity: 0;
-  animation: fadeIn 1.5s ease-out 0.5s forwards;
-}
-
-.enter-creds {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin: 0 0 20px 0;
-  width: 200px;
-  opacity: 0;
-  animation: fadeIn 1.5s ease-out 0.3s forwards;
-}
-
-.enter-creds input {
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--muted);
-  color: var(--fg);
-  font-family: var(--font);
-  font-size: clamp(14px, 2vh, 18px);
-  letter-spacing: 0.1em;
-  padding: 8px 4px;
-  text-align: center;
-  outline: none;
-  transition: border-color 0.2s ease;
-}
-
-.enter-creds input:focus {
-  border-bottom-color: var(--fg);
-}
-
-.enter-creds input::placeholder {
-  color: var(--muted);
-  opacity: 0.6;
-  letter-spacing: 0.15em;
-}
 
 /* Voice login container */
 .password-container {
@@ -421,6 +421,48 @@ body {
   display: block;
 }
 
+/* Cash Rain overlay — Konami reward */
+.cash-rain {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  overflow: hidden;
+  animation: cash-fade 4s ease-out forwards;
+  perspective: 1000px;
+}
+
+.cash-rain .bill {
+  position: absolute;
+  top: -120px;
+  width: var(--bill-width, 60px);
+  height: var(--bill-height, 25px);
+  background-image: var(--bill-img);
+  background-size: cover;
+  background-position: center;
+  transform-style: preserve-3d;
+  animation: fall-tumble var(--fall-duration, 2s) linear forwards;
+  animation-delay: var(--fall-delay, 0s);
+  opacity: var(--bill-opacity, 1);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+@keyframes fall-tumble {
+  0% {
+    transform: translateY(0) rotateZ(var(--start-rot, 0deg)) rotateX(0deg) rotateY(0deg);
+    opacity: var(--bill-opacity, 1);
+  }
+  100% {
+    transform: translateY(calc(100vh + 150px)) rotateZ(var(--spin-z, 360deg)) rotateX(var(--spin-x, 720deg)) rotateY(var(--spin-y, 540deg));
+    opacity: calc(var(--bill-opacity, 1) * 0.7);
+  }
+}
+
+@keyframes cash-fade {
+  0%, 60% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 /* Player Screen */
 .player-title {
   position: absolute;
@@ -462,6 +504,9 @@ body {
   height: var(--artwork-size);
   border: 2px solid var(--muted);
   flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
 }
 
 .artwork-image {
@@ -472,8 +517,21 @@ body {
   cursor: default;
 }
 
-.artwork-container.no-art {
+.artwork-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   display: none;
+  pointer-events: none;
+}
+
+.artwork-container.no-art .artwork-image {
+  display: none;
+}
+
+.artwork-container.no-art .artwork-canvas {
+  display: block;
 }
 
 /* Right side content wrapper - flows naturally on mobile */
@@ -547,15 +605,14 @@ body {
 }
 
 /* Artwork long-press hold feedback */
-.artwork-image.holding {
+.artwork-container.holding {
   opacity: 0.7;
-  transition: opacity 0.3s;
+  transition: opacity 0.15s ease;
 }
 
 /* Clickable metadata (super/secret modes) */
-.artwork-image.clickable {
+.artwork-container.clickable {
   cursor: pointer;
-  pointer-events: auto;
 }
 
 #artist, #album, #title, #year {
@@ -2246,6 +2303,94 @@ body {
 .profile-action-btn.syncing {
   opacity: 0.6;
   pointer-events: none;
+}
+
+/* Circle progress marks */
+.circle-progress {
+  margin: 0 0 32px 0;
+}
+
+.circle-marks {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.circle-mark {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--muted);
+  background: transparent;
+  cursor: default;
+  transition: background 0.3s ease, border-color 0.3s ease, transform 0.15s ease;
+}
+
+.circle-mark.unlocked {
+  border-color: var(--fg);
+  cursor: pointer;
+}
+
+.circle-mark.unlocked:hover {
+  transform: scale(1.2);
+}
+
+.circle-mark.current {
+  background: var(--fg);
+  border-color: var(--fg);
+}
+
+/* Circle advancement pulse on profile nav button */
+.circle-advance {
+  animation: circle-pulse 2s ease-out forwards;
+}
+
+@keyframes circle-pulse {
+  0% { transform: scale(1); }
+  15% { transform: scale(1.3); filter: brightness(1.5); }
+  30% { transform: scale(1); }
+  45% { transform: scale(1.15); filter: brightness(1.3); }
+  60% { transform: scale(1); filter: brightness(1); }
+  100% { transform: scale(1); }
+}
+
+/* Credential form for unconnected users */
+.sync-heading {
+  font-family: var(--font);
+  font-size: 14px;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  margin: 0 0 16px 0;
+}
+
+.profile-input {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--muted);
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 16px;
+  letter-spacing: 0.05em;
+  padding: 12px 0;
+  margin: 0 0 16px 0;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.profile-input::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.profile-input:focus {
+  border-bottom-color: var(--fg);
+}
+
+.profile-creds .profile-action-btn {
+  width: 100%;
+  margin-top: 8px;
 }
 
 /* DEBUG STYLES — REMOVE BEFORE RELEASE */

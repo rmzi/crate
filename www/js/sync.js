@@ -7,6 +7,7 @@ import { state } from './state.js';
 import { CONFIG } from './config.js';
 import { saveFavoriteTracks, saveHeardTracks, setSecretUnlocked, savePlayHistory, saveListenStats } from './storage.js';
 import { deriveKey, encrypt, decrypt, generateWriteHash } from './crypto.js';
+import { getCircleIndex } from './circles.js';
 
 const SYNC_ENDPOINT = '/sync';
 const SYNC_CREDS_KEY = `${CONFIG.STORAGE_KEY.replace('_heard_tracks', '')}_sync_credentials`;
@@ -57,6 +58,7 @@ function serializeState() {
     totalListenSeconds: state.totalListenSeconds,
     totalUniqueHeard: state.totalUniqueHeard,
     lastPlayedAt: state.lastPlayedAt,
+    currentCircle: state.currentCircle,
     syncedAt: new Date().toISOString()
   });
 }
@@ -119,6 +121,16 @@ function mergeState(remote) {
     statsChanged = true;
   }
   if (statsChanged) saveListenStats();
+
+  // Circle: take the more advanced circle (higher threshold)
+  if (remote.currentCircle) {
+    const remoteIdx = getCircleIndex(remote.currentCircle);
+    const localIdx = getCircleIndex(state.currentCircle || 'limbo');
+    if (remoteIdx > localIdx) {
+      state.currentCircle = remote.currentCircle;
+      saveListenStats();
+    }
+  }
 
   return { favoritesAdded, heardAdded, secretChanged, statsChanged };
 }

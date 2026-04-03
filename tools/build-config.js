@@ -38,6 +38,7 @@ const siteObj = {
     font: frontmatter.theme?.font || "'Special Elite', cursive",
     titleFont: frontmatter.theme?.title_font || "'Anton', Impact, sans-serif",
     searchFont: frontmatter.theme?.search_font || "'Bebas Neue', sans-serif",
+    circles: frontmatter.theme?.circles || null,
   }
 };
 
