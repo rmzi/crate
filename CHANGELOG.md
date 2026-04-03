@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.2.0] - 2026-04-02
+
+### Added
+- Profile screen with stats dashboard (listen time, tracks heard, favorites, last played)
+- Enter screen personalization: returning users see "WELCOME BACK", new users see credential inputs
+- Listen stats tracking: cumulative time, unique tracks, last played timestamp
+- Stats sync across devices using max() merge strategy
+- Debug-in-UI skill for visual debug panels during development
+- Sync status with remediation on profile screen (connected/error/disconnect)
+
+### Changed
+- Sync button replaced with profile icon (person silhouette) in player bar
+- Profile screen is the new home for sync controls and status
+
 ## [1.1.0] - 2026-03-31
 
 ### Added
