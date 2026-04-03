@@ -124,3 +124,35 @@ export function loadPlayHistory() {
     console.warn('Failed to load play history:', e);
   }
 }
+
+/**
+ * Save listening stats to localStorage
+ */
+export function saveListenStats() {
+  try {
+    localStorage.setItem(CONFIG.STATS_KEY, JSON.stringify({
+      totalListenSeconds: state.totalListenSeconds,
+      totalUniqueHeard: state.totalUniqueHeard,
+      lastPlayedAt: state.lastPlayedAt
+    }));
+  } catch (e) {
+    console.warn('Failed to save listen stats:', e);
+  }
+}
+
+/**
+ * Load listening stats from localStorage
+ */
+export function loadListenStats() {
+  try {
+    const stored = localStorage.getItem(CONFIG.STATS_KEY);
+    if (stored) {
+      const data = JSON.parse(stored);
+      state.totalListenSeconds = data.totalListenSeconds || 0;
+      state.totalUniqueHeard = data.totalUniqueHeard || 0;
+      state.lastPlayedAt = data.lastPlayedAt || null;
+    }
+  } catch (e) {
+    console.warn('Failed to load listen stats:', e);
+  }
+}

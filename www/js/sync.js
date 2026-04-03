@@ -5,7 +5,7 @@
 
 import { state } from './state.js';
 import { CONFIG } from './config.js';
-import { saveFavoriteTracks, saveHeardTracks, setSecretUnlocked, savePlayHistory } from './storage.js';
+import { saveFavoriteTracks, saveHeardTracks, setSecretUnlocked, savePlayHistory, saveListenStats } from './storage.js';
 import { deriveKey, encrypt, decrypt, generateWriteHash } from './crypto.js';
 
 const SYNC_ENDPOINT = '/sync';
@@ -54,6 +54,9 @@ function serializeState() {
     secretUnlocked: state.secretUnlocked,
     playHistory: state.playHistory,
     historyIndex: state.historyIndex,
+    totalListenSeconds: state.totalListenSeconds,
+    totalUniqueHeard: state.totalUniqueHeard,
+    lastPlayedAt: state.lastPlayedAt,
     syncedAt: new Date().toISOString()
   });
 }
@@ -101,7 +104,23 @@ function mergeState(remote) {
     savePlayHistory();
   }
 
-  return { favoritesAdded, heardAdded, secretChanged };
+  // Stats: take max for counters, most recent for timestamps
+  let statsChanged = false;
+  if (typeof remote.totalListenSeconds === 'number' && remote.totalListenSeconds > state.totalListenSeconds) {
+    state.totalListenSeconds = remote.totalListenSeconds;
+    statsChanged = true;
+  }
+  if (typeof remote.totalUniqueHeard === 'number' && remote.totalUniqueHeard > state.totalUniqueHeard) {
+    state.totalUniqueHeard = remote.totalUniqueHeard;
+    statsChanged = true;
+  }
+  if (remote.lastPlayedAt && (!state.lastPlayedAt || remote.lastPlayedAt > state.lastPlayedAt)) {
+    state.lastPlayedAt = remote.lastPlayedAt;
+    statsChanged = true;
+  }
+  if (statsChanged) saveListenStats();
+
+  return { favoritesAdded, heardAdded, secretChanged, statsChanged };
 }
 
 /**

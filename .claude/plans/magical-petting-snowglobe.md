@@ -1,199 +1,227 @@
-# State Sharing + Offline Bug Fix
+# Profile Screen + Stats Dashboard + Debug-in-UI Principle
 
 ## Context
 
-Crate stores favorites, heard tracks, and secret-unlocked state in browser localStorage — device-local and lost on clear. The goal is to sync this state across devices using a username + password that derives a client-side encryption key (zero-knowledge — the server never sees plaintext). Additionally, offline listening is broken due to two disconnected cache systems that need unification.
+The sync button (↻) is an implementation detail masquerading as a feature. Users don't think in terms of "sync" — they think in terms of "me" and "my stuff." The sync button should become a **profile screen** — a personal dashboard showing listening stats, sync health, and (during development) debug information. 
 
-## Architecture
-
-```
-Browser                          CloudFront                    Lambda                   S3
-  |                                  |                           |                      |
-  |-- PUT /sync/{username} --------->|-- /sync/* behavior ------>|-- PutObject --------->|
-  |   (encrypted blob + write_hash)  |   (Lambda Function URL)   |   sync/{user}.json   |
-  |                                  |                           |                      |
-  |-- GET /sync/{username} --------->|-------------------------->|-- GetObject --------->|
-  |   (returns ciphertext)           |                           |                      |
-```
-
-**Encryption**: `password → PBKDF2(100k iters, username as salt) → AES-256-GCM` via Web Crypto API.  
-**Write protection**: `write_hash = SHA-256(password + username)` — stored alongside blob, validated on PUT.  
-**Storage**: Existing tracks S3 bucket under `sync/` prefix. No new bucket.  
-**Compute**: Single Lambda with Function URL, fronted by CloudFront `/sync/*` behavior. No API Gateway.
-
-## What Syncs
-
-| State | Strategy | Priority |
-|-------|----------|----------|
-| `favoriteTracks` (Set) | Union merge on pull, full replace on push | Must |
-| `heardTracks` (Set) | Union merge (never un-hear) | Should |
-| `secretUnlocked` (bool) | OR (once unlocked, stays unlocked) | Must |
-
-## Bug Fix: Offline Listening
-
-**Root cause**: Two disconnected cache systems:
-- **Service Worker Cache API** (`audio-v1`) — auto-caches on play, queried by `isTrackCached()` in pwa.js
-- **IndexedDB** (`crate_cache`) — populated by manual sync button, queried by `playTrack()` in player.js
-
-`getNextTrack()` and `filterTracks()` call `isTrackCached()` which only checks SW cache. After syncing favorites offline via the button (IndexedDB), going offline shows no playable tracks.
-
-**Fix**: One-line addition to `isTrackCached()` in pwa.js — also check `state.cachedTracks` (IndexedDB track IDs, already loaded at startup).
+Additionally, this work introduces a **debug-in-UI** design principle: during UI development, render debug state visually in the page itself (not just console.log), organized for easy removal when the feature is stable.
 
 ---
 
-## Tasks (5 units, T1-T4 parallelizable)
+## Profile Screen — What It Shows
 
-### T1: Terraform Infrastructure
-**New file**: `terraform/lambda-sync.tf`
-- `aws_lambda_function.sync` — nodejs20.x, 128MB, 10s timeout
-- `aws_lambda_function_url.sync` — NONE auth, CORS for crate domain
-- `aws_iam_role.sync_lambda` — assume role for Lambda service
-- `aws_iam_role_policy_attachment` — CloudWatch basic execution
-- `aws_iam_role_policy.sync_lambda_s3` — GetObject + PutObject on `tracks-bucket/sync/*`
+### Identity
+- **Username** (large, top, `Bebas Neue`) — from `getSyncCredentials().username`
+- No profile pic, no avatar — just the name
 
-**Modified**: `terraform/cloudfront.tf`
-- Add Lambda Function URL as custom origin (`sync-lambda`)
-- Add ordered_cache_behavior for `/sync/*` — allowed methods include PUT, `default_ttl = 0`
+### Stats (computed from state + new tracking fields)
+| Stat | Source | New? |
+|------|--------|------|
+| Tracks heard | `state.heardTracks.size` | No |
+| Catalog % | `heardTracks.size / tracks.length` | No |
+| Favorites count | `state.favoriteTracks.size` | No |
+| Total listen time | **New**: `state.totalListenSeconds` | Yes |
+| Last played | **New**: `state.lastPlayedAt` | Yes |
+| Total unique tracks (non-resetting) | **New**: `state.totalUniqueHeard` | Yes |
 
-**Modified**: `terraform/outputs.tf` — add `sync_lambda_url`
+### Sync Status
+- **Status indicator**: Connected / Disconnected / Error
+- **Last synced**: timestamp from `syncedAt` (already in serialized state)
+- **Sync problems**: clear text explaining issues ("Wrong password", "Server unreachable", etc.)
+- **Remediation**: actionable text ("Tap to retry", "Re-enter credentials", "Check network")
+- **Manual sync button**: force push/pull from this screen
+- **Disconnect button**: clear credentials, return to "new user" state
 
-### T2: Lambda Handler
-**New file**: `terraform/lambda/index.mjs` (~50 lines)
-- GET `/sync/{username}` → read `sync/{username}.json` from S3, return JSON
-- PUT `/sync/{username}` → validate `write_hash` against existing (if any), write to S3
-- Input validation (no path traversal, required fields check)
-- No node_modules needed — AWS SDK v3 built into nodejs20.x
-
-**Build**: `cd terraform/lambda && zip sync.zip index.mjs`
-
-### T3: Client Crypto + Sync Module
-**New file**: `www/js/crypto.js`
-- `deriveKey(password, username)` — PBKDF2 → AES-GCM CryptoKey
-- `encrypt(key, plaintext)` → `{ciphertext, iv}` (base64)
-- `decrypt(key, ciphertextB64, ivB64)` → plaintext string
-- `generateWriteHash(password, username)` → hex SHA-256
-
-**New file**: `www/js/sync.js`
-- `serializeState()` — JSON of favorites + heard + secretUnlocked
-- `mergeState(remote)` — union merge favorites/heard, OR secretUnlocked
-- `pullState(username, password)` — GET, decrypt, merge
-- `pushState(username, password)` — encrypt, PUT with write_hash
-- `fullSync(username, password)` — pull then push
-- `saveSyncUsername()` / `getSyncUsername()` / `clearSyncCredentials()` — localStorage
-
-### T4: UI — HTML, CSS, Animations
-**Modified**: `www/index.html`
-- Rename `#sync-btn` → `#offline-cache-btn` (existing cloud-download icon)
-- Add `#state-sync-btn` (two-arrow refresh icon, SVG) in search-header, rightmost position
-- Add `#sync-modal` after info-modal: form with username/password, status indicator, disconnect button
-
-**Modified**: `www/main.css` (~120 new lines)
-
-Sync button states:
-- `.state-sync-btn` — hover: `rotate(30deg)`, active: `rotate(180deg) 0.15s`
-- `.state-sync-btn.syncing` — `sync-spin` 0.8s `cubic-bezier(0.4, 0, 0.2, 1)` infinite
-- `.state-sync-btn.connected::after` — 6px green dot, bottom-right
-- `.state-sync-btn.sync-success` — green border/color flash
-- `.state-sync-btn.sync-error` — red border/color flash
-
-Modal:
-- `.sync-modal-content` — `sync-modal-enter` 0.35s `cubic-bezier(0.2, 0.8, 0.2, 1)` (slide up + scale)
-- `sync-backdrop-in` — 0.25s `ease-out` fade
-- Inputs: transparent bg, `1px solid --muted`, focus → `--fg` border, `Bebas Neue` font
-- Submit button: `2px solid --fg`, hover inverts, active `scale(0.97)`
-- **No border-radius anywhere** — brutalist aesthetic maintained
-
-Keyframes:
-- `sync-spin` — `rotate(0→360deg)`, `cubic-bezier(0.4, 0, 0.2, 1)` 0.8s
-- `sync-modal-enter` — `translateY(40px) scale(0.95) → translateY(0) scale(1)`, 0.35s
-- `sync-success-flash` — `scale(1→1.15→1)`, 0.4s
-- `sync-backdrop-in` — `opacity 0→1`, 0.25s
-
-All animations: `transform` + `opacity` only (GPU composited, no layout thrash).
-
-**Modified**: `www/js/elements.js`
-- Replace `syncBtn` → `offlineCacheBtn`, add `stateSyncBtn`
-- Add modal element refs: `syncModal`, `syncForm`, `syncUsername`, `syncPassword`, `syncError`, `syncSubmit`, `syncStatus`, `syncLogout`, `syncModalClose`
-
-### T5: Wiring + Offline Bug Fix (depends on T3, T4)
-
-**Modified**: `www/js/events.js`
-- Import sync module
-- Rename `syncBtn` → `offlineCacheBtn` event binding
-- Add `stateSyncBtn` click → `openSyncModal()`
-- Add `setupSyncModalHandlers()` — form submit, backdrop close, disconnect
-- Form submit: call `fullSync()`, update button states (syncing/success/error), auto-close on success after 1.2s, refresh track list + mode UI on secret unlock
-
-**Modified**: `www/js/player.js`
-- Rename all `elements.syncBtn` → `elements.offlineCacheBtn` in `updateSyncUI()`
-
-**Modified**: `www/js/ui.js`
-- `updateModeBasedUI()`: `offlineCacheBtn` hidden unless secret, `stateSyncBtn` always visible
-
-**Modified**: `www/js/pwa.js` — offline bug fix
-```javascript
-// BEFORE:
-export function isTrackCached(track) {
-  if (\!track || \!track.path) return false;
-  return cachedTracks.has(getMediaUrl(track.path));
-}
-
-// AFTER:
-export function isTrackCached(track) {
-  if (\!track || \!track.path) return false;
-  if (cachedTracks.has(getMediaUrl(track.path))) return true;
-  if (state.cachedTracks && state.cachedTracks.has(track.id)) return true;
-  return false;
-}
-```
+### Debug Panel (development only, organized for removal)
+- All debug items wrapped in a single `<div id="profile-debug" class="profile-debug">`
+- Easy to hide with one CSS rule or remove the entire div
+- Shows: raw sync credentials status, localStorage keys/sizes, SW cache state, last push/pull result, network state, service worker registration status
 
 ---
 
-## File Summary
+## New Data Tracking
 
-### New Files (4)
+### State additions (`www/js/state.js`)
+```js
+totalListenSeconds: 0,    // cumulative, never resets
+totalUniqueHeard: 0,      // cumulative, never resets (heardTracks resets on full cycle)
+lastPlayedAt: null,       // ISO timestamp
+lastSyncResult: null,     // { status, error?, timestamp }
+```
+
+### Storage additions (`www/js/storage.js`)
+- `saveListenStats()` / `loadListenStats()` — persists `totalListenSeconds`, `totalUniqueHeard`, `lastPlayedAt`
+
+### Sync additions (`www/js/sync.js`)
+- `serializeState()` — include `totalListenSeconds`, `totalUniqueHeard`, `lastPlayedAt`
+- `mergeState()` — take `max()` for counters, most-recent for timestamps
+
+### Player instrumentation (`www/js/player.js`)
+- `playTrack()`: set `state.lastPlayedAt = new Date().toISOString()`, record `state._playStartTime = Date.now()`
+- `handleTrackEnded()`: add elapsed seconds to `state.totalListenSeconds`, save
+- `handlePlayPause()`: on pause, add elapsed since `_playStartTime`; on play, reset `_playStartTime`
+- `markTrackHeard()` (in `tracks.js`): increment `state.totalUniqueHeard` only when ID is genuinely new
+
+---
+
+## Tasks (5 units, T1-T3 parallelizable)
+
+### T1: Stats Tracking Infrastructure
+**Modified files**: `state.js`, `storage.js`, `sync.js`, `config.js`
+
+- Add 4 new state fields
+- Add `saveListenStats()` / `loadListenStats()` to storage
+- Add new config keys for localStorage
+- Extend `serializeState()` and `mergeState()` in sync.js
+- Merge strategy: `max()` for counters, most-recent for timestamps
+
+### T2: Player Instrumentation
+**Modified files**: `player.js`, `tracks.js`
+
+- Track play start time in `playTrack()`
+- Accumulate listen seconds in `handleTrackEnded()` and pause handler
+- Set `lastPlayedAt` on each play
+- Increment `totalUniqueHeard` in `markTrackHeard()` (only for new IDs)
+- Call `saveListenStats()` after mutations
+
+### T3: Profile Screen HTML + CSS
+**Modified files**: `index.html`, `main.css`
+
+HTML structure:
+```html
+<div id="profile-screen" class="screen">
+  <div class="profile-container">
+    <button id="profile-back-btn" class="profile-back-btn" aria-label="Back">
+      <svg><\!-- back arrow --></svg>
+    </button>
+    
+    <h2 id="profile-username" class="profile-username">---</h2>
+    
+    <div class="profile-stats">
+      <div class="stat-row">
+        <span class="stat-label">LISTENED</span>
+        <span id="profile-listen-time" class="stat-value">0h 0m</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">TRACKS HEARD</span>
+        <span id="profile-heard" class="stat-value">0 / 0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">FAVORITES</span>
+        <span id="profile-favs" class="stat-value">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">LAST PLAYED</span>
+        <span id="profile-last-played" class="stat-value">---</span>
+      </div>
+    </div>
+    
+    <div class="profile-sync">
+      <div class="sync-status-row">
+        <span class="sync-status-dot" id="profile-sync-dot"></span>
+        <span id="profile-sync-status">Not connected</span>
+      </div>
+      <span id="profile-sync-detail" class="sync-detail"></span>
+      <div class="profile-sync-actions">
+        <button id="profile-sync-btn" class="profile-action-btn">SYNC NOW</button>
+        <button id="profile-disconnect-btn" class="profile-action-btn danger">DISCONNECT</button>
+      </div>
+    </div>
+    
+    <\!-- DEBUG: Remove before release -->
+    <div id="profile-debug" class="profile-debug">
+      <h3 class="debug-heading">DEBUG</h3>
+      <pre id="debug-output" class="debug-output"></pre>
+    </div>
+  </div>
+</div>
+```
+
+CSS:
+- Brutalist: no border-radius, monospace for values, `Bebas Neue` for labels
+- `.profile-container` — `max-width: 400px`, centered, `padding-top: 80px`
+- `.stat-row` — flex between label and value, `border-bottom: 1px solid var(--muted)`
+- `.sync-status-dot` — 8px circle, green/red/yellow based on class
+- `.profile-debug` — `border: 1px dashed var(--muted)`, `font-size: 11px`, monospace, slightly dimmed
+- All `.profile-debug` items use a `[data-debug]` attribute for easy querySelectorAll removal
+
+### T4: Profile Screen Wiring
+**Modified files**: `elements.js`, `events.js`, `state.js`, `ui.js`, `sw.js`
+
+- Add `SCREENS.PROFILE` and `SCREEN_ID_MAP['profile-screen']`
+- Add element refs: `profileScreen`, `profileBackBtn`, `profileUsername`, stat elements, sync elements, debug output
+- Replace sync button click handler: now opens profile screen instead of prompting
+- `showScreen('profile-screen')` → populate stats, sync status, debug info
+- Profile back button → `showScreen('player-screen')`
+- Profile sync button → force `fullSync()` with visual feedback
+- Profile disconnect → `clearSyncCredentials()`, update UI, show "enter creds" state
+- Title logo: add `'profile-screen'` to the `at-top` condition in `ui.js:98`
+- Bump SW shell cache to `shell-v3`
+
+### T5: Enter Screen Personalization
+**Modified files**: `index.html`, `elements.js`, `events.js`, `main.css`
+
+- Add `#enter-greeting` and `#enter-username-display` elements (hidden by default)
+- Add `#enter-creds` form (username + password inputs, hidden by default)
+- In `init()`: if creds exist → show "WELCOME BACK" + username, button = "ENTER"
+- In `init()`: if no creds → show credential inputs, button = "CONNECT"
+- On CONNECT click: save creds, kick off non-blocking `fullSync()`, enter player
+- On ENTER click (returning user): proceed as normal (auto-pull already fired)
+
+### T6: GitHub Issues
+1. **Account recovery** — zero-knowledge means no server-side recovery. Options to explore: recovery codes, local export/import, "just create new account"
+2. **PDS ethos: Debug-in-UI** — design principle for rendering debug state visually during development, organized for removal
+
+### T7: Debug-in-UI Skill
+**New file**: `.claude/skills/debug-in-ui.md`
+
+Principle: When building UI features, render relevant debug state in the page itself — not just `console.log`. Rules:
+- Wrap all debug elements in a single container with a predictable ID pattern (`#*-debug`)
+- Use `data-debug` attributes on individual items
+- Use `class="debug-*"` for styling (dashed borders, monospace, dimmed)
+- CSS: `.debug-*` styles grouped in one block with `/* DEBUG STYLES — REMOVE */` comment
+- JS: debug population logic in clearly marked functions (`populateDebugInfo()`)
+- Removal checklist: delete HTML container, delete CSS block, delete JS function, grep for `debug` to verify clean
+
+---
+
+## Files Summary
+
+### New Files
 | File | Purpose |
 |------|---------|
-| `www/js/crypto.js` | PBKDF2 key derivation, AES-GCM encrypt/decrypt, SHA-256 write hash |
-| `www/js/sync.js` | Push/pull/merge orchestration, credential storage |
-| `terraform/lambda-sync.tf` | Lambda, IAM, Function URL, CloudFront behavior |
-| `terraform/lambda/index.mjs` | Lambda handler — GET/PUT encrypted blobs to S3 |
+| `.claude/skills/debug-in-ui.md` | Design principle skill for visual debug during UI dev |
 
-### Modified Files (8)
+### Modified Files
 | File | Changes |
 |------|---------|
-| `www/index.html` | Rename sync-btn → offline-cache-btn, add state-sync-btn + sync-modal |
-| `www/main.css` | ~120 lines: sync button states, modal styles, 4 keyframe animations |
-| `www/js/elements.js` | Replace syncBtn, add stateSyncBtn + modal element refs |
-| `www/js/events.js` | Import sync, wire modal handlers, rename cache button binding |
-| `www/js/player.js` | Rename syncBtn → offlineCacheBtn in updateSyncUI() |
-| `www/js/ui.js` | Update updateModeBasedUI() for new button names |
-| `www/js/pwa.js` | Fix isTrackCached() to check both cache systems |
-| `terraform/cloudfront.tf` | Add Lambda origin + /sync/* behavior |
+| `www/index.html` | Profile screen HTML, enter screen greeting + creds form |
+| `www/main.css` | ~100 lines: profile layout, stat rows, sync status, debug panel, enter creds |
+| `www/js/state.js` | Add `SCREENS.PROFILE`, 4 new tracking fields |
+| `www/js/storage.js` | `saveListenStats()` / `loadListenStats()` |
+| `www/js/sync.js` | Extend serialize/merge with new stats fields |
+| `www/js/config.js` | New localStorage key for listen stats |
+| `www/js/player.js` | Listen time tracking, lastPlayedAt, play start time |
+| `www/js/tracks.js` | `totalUniqueHeard` increment in markTrackHeard |
+| `www/js/elements.js` | ~15 new element refs (profile + enter screen) |
+| `www/js/events.js` | Profile screen navigation, enter flow personalization, sync → profile redirect |
+| `www/js/ui.js` | Add profile to SCREEN_ID_MAP, title logo handling |
+| `www/sw.js` | Bump to shell-v3 (no new JS module needed — profile logic lives in events.js) |
 
 ---
 
 ## Verification
 
-1. **Terraform**: `terraform plan` shows expected resources (Lambda, IAM role, CloudFront behavior)
-2. **Lambda**: Deploy zip, test with curl — `PUT /sync/testuser` then `GET /sync/testuser`
-3. **Encryption roundtrip**: In browser console, verify encrypt→decrypt with same key returns original
-4. **Sync flow**: Open app on two browsers, login with same creds, favorite tracks on A, sync on B → favorites appear
-5. **Write protection**: Try PUT with wrong write_hash → 403
-6. **Wrong password**: Try pull with wrong password → decryption fails with clear error message
-7. **Offline bug fix**: Sync favorites cache, go offline (DevTools), verify tracks still appear and auto-advance works
-8. **Animations**: Modal slides up smoothly, spinner rotates during sync, green dot appears after connect
-9. **Secret unlock sync**: Unlock secret on device A, sync, login on device B → secret mode activates
-10. **No regression**: Existing offline cache button still works, favorites toggle still works, Konami still works
-
----
-
-## Credential Storage Decision
-
-**Store both username + password in localStorage.** No checkbox, no re-entry friction. On app load, if credentials exist → auto-pull + merge silently. KISS.
-
-In `sync.js`:
-- `saveSyncCredentials(username, password)` — stores both
-- `getSyncCredentials()` → `{username, password}` or null
-- On app init: if credentials exist, `pullState()` silently in background
-- On favorite toggle / heard track: debounced `pushState()` (~2s)
+1. **New user**: Clear localStorage → see username/password inputs + "CONNECT"
+2. **Connect**: Fill creds, click CONNECT → creds saved, player starts, background sync
+3. **Returning user**: Reload → "WELCOME BACK" + username, "ENTER" button
+4. **Profile screen**: Tap sync/profile icon → see name, stats, sync status
+5. **Stats update**: Play tracks → listen time increments, heard count grows, last played updates
+6. **Stats persist**: Reload → stats survive (localStorage)
+7. **Stats sync**: Sync from device A → pull on device B → stats merge (max counters)
+8. **Sync status**: Profile shows green dot when connected, error details on failure
+9. **Force sync**: Tap "SYNC NOW" on profile → spinner → success/error feedback
+10. **Disconnect**: Tap disconnect → creds cleared, next reload shows new user state
+11. **Debug panel**: Visible during dev, shows localStorage state, SW status, sync result
+12. **Debug removal**: Delete `#profile-debug` div + CSS block + JS function → clean removal
+13. **Konami**: Still works on enter screen (inputs don't capture arrow keys)

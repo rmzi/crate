@@ -4,7 +4,7 @@
  * artwork (cache-first), audio (cache-first + cache-on-play)
  */
 
-const SHELL_CACHE = 'shell-v2';
+const SHELL_CACHE = 'shell-v3';
 const MANIFEST_CACHE = 'manifest-v1';
 const ARTWORK_CACHE = 'artwork-v1';
 const AUDIO_CACHE = 'audio-v1';

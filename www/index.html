@@ -46,6 +46,12 @@
           <span class="konami-arrow">■</span>
           <span class="konami-arrow">■</span>
         </div>
+        <p id="enter-greeting" class="enter-greeting hidden">WELCOME BACK</p>
+        <span id="enter-username-display" class="enter-username-display hidden"></span>
+        <div id="enter-creds" class="enter-creds hidden">
+          <input id="enter-user-input" type="text" placeholder="USERNAME" autocomplete="username" autocapitalize="off" spellcheck="false">
+          <input id="enter-pass-input" type="password" placeholder="PASSWORD" autocomplete="current-password">
+        </div>
         <button id="enter-btn">ENTER</button>
       </div>
     </div>
@@ -126,13 +132,8 @@
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>
           </button>
-          <button id="state-sync-btn" class="secondary-btn state-sync-btn" aria-label="Sync">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 4v5h5"/>
-              <path d="M20 20v-5h-5"/>
-              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L4 9"/>
-              <path d="M3.51 15A9 9 0 0 0 18.36 18.36L20 15"/>
-            </svg>
+          <button id="profile-nav-btn" class="secondary-btn" aria-label="Profile">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
           </button>
         </div>
 
@@ -168,6 +169,54 @@
           <span class="sync-progress-text"></span>
         </div>
         <div id="track-list" class="track-list"></div>
+      </div>
+    </div>
+
+    <!-- Profile screen -->
+    <div id="profile-screen" class="screen">
+      <div class="profile-container">
+        <button id="profile-back-btn" class="profile-back-btn" aria-label="Back to player">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        </button>
+
+        <h2 id="profile-username" class="profile-username">---</h2>
+
+        <div class="profile-stats">
+          <div class="stat-row">
+            <span class="stat-label">LISTENED</span>
+            <span id="profile-listen-time" class="stat-value">0h 0m</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">TRACKS HEARD</span>
+            <span id="profile-heard" class="stat-value">0 / 0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">FAVORITES</span>
+            <span id="profile-favs" class="stat-value">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">LAST PLAYED</span>
+            <span id="profile-last-played" class="stat-value">---</span>
+          </div>
+        </div>
+
+        <div class="profile-sync">
+          <div class="sync-status-row">
+            <span class="sync-status-dot" id="profile-sync-dot"></span>
+            <span id="profile-sync-status" class="sync-status-text">Not connected</span>
+          </div>
+          <p id="profile-sync-detail" class="sync-detail"></p>
+          <div class="profile-sync-actions">
+            <button id="profile-sync-btn" class="profile-action-btn">SYNC NOW</button>
+            <button id="profile-disconnect-btn" class="profile-action-btn danger">DISCONNECT</button>
+          </div>
+        </div>
+
+        <!-- DEBUG: Remove before release -->
+        <div id="profile-debug" class="profile-debug">
+          <h3 class="debug-heading">DEBUG</h3>
+          <pre id="debug-output" class="debug-output"></pre>
+        </div>
       </div>
     </div>
 

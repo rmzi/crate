@@ -9,7 +9,7 @@ import { elements } from './elements.js';
 import { formatTime, getMediaUrl } from './utils.js';
 import { trackEvent } from './analytics.js';
 import { setSignedCookies, clearAllCookies } from './cookies.js';
-import { loadHeardTracks, loadFavoriteTracks, saveFavoriteTracks, setSecretUnlocked, savePlayHistory, loadPlayHistory } from './storage.js';
+import { loadHeardTracks, loadFavoriteTracks, saveFavoriteTracks, setSecretUnlocked, savePlayHistory, loadPlayHistory, saveListenStats, loadListenStats } from './storage.js';
 import { setTrackInHash } from './hash.js';
 import { showScreen, showError, showAuthError, updateMiniPlayer, updateModeBasedUI } from './ui.js';
 import { getCachedAudio, getCachedTrackIds, removeCachedAudio, syncFavoritesOffline, clearCache } from './cache.js';
@@ -257,6 +257,10 @@ export async function playTrack(track, fromHistory = false, isRetry = false) {
 
     state.isPlaying = true;
     elements.playPauseBtn.classList.remove('paused');
+    // Track listen stats
+    state.lastPlayedAt = new Date().toISOString();
+    state._playStartTime = Date.now();
+    saveListenStats();
     markTrackHeard(track.id);
 
     // Reset error counts on successful playback
@@ -430,6 +434,7 @@ export function handlePlayPause() {
       playPromise.then(() => {
         elements.playPauseBtn.classList.remove('paused');
         state.isPlaying = true;
+        state._playStartTime = Date.now();
         trackEvent('resume');
         updateMiniPlayer();
       }).catch((e) => {
@@ -443,6 +448,12 @@ export function handlePlayPause() {
       });
     }
   } else {
+    // Accumulate listen time on pause
+    if (state._playStartTime) {
+      state.totalListenSeconds += Math.floor((Date.now() - state._playStartTime) / 1000);
+      state._playStartTime = null;
+      saveListenStats();
+    }
     elements.audio.pause();
     elements.playPauseBtn.classList.add('paused');
     state.isPlaying = false;
@@ -521,6 +532,12 @@ export function updateRepeatButton() {
  * Handle track ended event
  */
 export function handleTrackEnded() {
+  // Accumulate listen time
+  if (state._playStartTime) {
+    state.totalListenSeconds += Math.floor((Date.now() - state._playStartTime) / 1000);
+    state._playStartTime = null;
+    saveListenStats();
+  }
   // Track completed listen
   if (state.currentTrack) {
     trackEvent('song_complete', {
@@ -622,6 +639,7 @@ export async function startPlayer() {
     loadHeardTracks();
     loadFavoriteTracks();
     loadPlayHistory();
+    loadListenStats();
     updateCatalogProgress();
 
     // Load cached track IDs for offline indicators

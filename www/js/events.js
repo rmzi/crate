@@ -560,59 +560,112 @@ function setupFirstInteractionUnlock() {
 }
 
 /**
- * Handle sync button click — prompt for credentials or run sync if already connected
+ * Format seconds into human-readable time
  */
-async function handleSyncClick() {
+function formatListenTime(seconds) {
+  if (seconds < 60) return `${seconds}s`;
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  if (hours > 0) return `${hours}h ${mins}m`;
+  return `${mins}m`;
+}
+
+/**
+ * Populate profile screen with current stats and sync status
+ */
+function populateProfile() {
   const creds = getSyncCredentials();
 
-  if (creds) {
-    // Already connected — do a sync
-    elements.stateSyncBtn?.classList.add('syncing');
-    const result = await fullSync(creds.username, creds.password);
-    elements.stateSyncBtn?.classList.remove('syncing');
+  // Username
+  if (elements.profileUsername) {
+    elements.profileUsername.textContent = creds ? creds.username.toUpperCase() : 'GUEST';
+  }
 
-    if (result.status === 'ok') {
-      elements.stateSyncBtn?.classList.add('sync-success');
-      setTimeout(() => elements.stateSyncBtn?.classList.remove('sync-success'), 1500);
-      if (result.pullResult?.details?.secretChanged) {
-        updateModeBasedUI();
-      }
+  // Stats
+  if (elements.profileListenTime) {
+    elements.profileListenTime.textContent = formatListenTime(state.totalListenSeconds);
+  }
+  if (elements.profileHeard) {
+    elements.profileHeard.textContent = `${state.totalUniqueHeard} / ${state.tracks.length}`;
+  }
+  if (elements.profileFavs) {
+    elements.profileFavs.textContent = state.favoriteTracks.size.toString();
+  }
+  if (elements.profileLastPlayed) {
+    if (state.lastPlayedAt) {
+      const d = new Date(state.lastPlayedAt);
+      elements.profileLastPlayed.textContent = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } else {
-      elements.stateSyncBtn?.classList.add('sync-error');
-      setTimeout(() => elements.stateSyncBtn?.classList.remove('sync-error'), 1500);
-      // If credentials are bad, clear them so next click prompts again
-      if (result.error === 'Wrong password' || result.error === 'Invalid credentials') {
-        clearSyncCredentials();
-        elements.stateSyncBtn?.classList.remove('connected');
-      }
+      elements.profileLastPlayed.textContent = '---';
     }
-    return;
   }
 
-  // No credentials — prompt for them
-  const username = prompt('SYNC USERNAME');
-  if (!username) return;
-
-  const password = prompt('SYNC PASSWORD');
-  if (!password) return;
-
-  elements.stateSyncBtn?.classList.add('syncing');
-  const result = await fullSync(username.trim(), password);
-  elements.stateSyncBtn?.classList.remove('syncing');
-
-  if (result.status === 'ok') {
-    saveSyncCredentials(username.trim(), password);
-    elements.stateSyncBtn?.classList.add('connected');
-    elements.stateSyncBtn?.classList.add('sync-success');
-    setTimeout(() => elements.stateSyncBtn?.classList.remove('sync-success'), 1500);
-    if (result.pullResult?.details?.secretChanged) {
-      updateModeBasedUI();
+  // Sync status
+  if (elements.profileSyncDot) {
+    elements.profileSyncDot.className = 'sync-status-dot';
+    if (creds) {
+      elements.profileSyncDot.classList.add(state.lastSyncResult?.status === 'error' ? 'error' : 'connected');
     }
-  } else {
-    elements.stateSyncBtn?.classList.add('sync-error');
-    setTimeout(() => elements.stateSyncBtn?.classList.remove('sync-error'), 1500);
-    alert(result.error || 'Sync failed');
   }
+  if (elements.profileSyncStatus) {
+    if (!creds) {
+      elements.profileSyncStatus.textContent = 'Not connected';
+    } else if (state.lastSyncResult?.status === 'error') {
+      elements.profileSyncStatus.textContent = 'Sync error';
+    } else {
+      elements.profileSyncStatus.textContent = 'Connected';
+    }
+  }
+  if (elements.profileSyncDetail) {
+    if (state.lastSyncResult?.error) {
+      elements.profileSyncDetail.textContent = state.lastSyncResult.error;
+    } else if (state.lastSyncResult?.status === 'ok') {
+      elements.profileSyncDetail.textContent = 'Last sync: ' + new Date().toLocaleTimeString();
+    } else {
+      elements.profileSyncDetail.textContent = '';
+    }
+  }
+
+  // Show/hide sync actions based on connection state
+  if (elements.profileSyncBtn) {
+    elements.profileSyncBtn.textContent = creds ? 'SYNC NOW' : 'CONNECT';
+  }
+  if (elements.profileDisconnectBtn) {
+    elements.profileDisconnectBtn.style.display = creds ? '' : 'none';
+  }
+
+  // DEBUG: populate debug info
+  populateDebugInfo();
+}
+
+/** DEBUG: Remove before release */
+function populateDebugInfo() {
+  if (!elements.debugOutput) return;
+  const creds = getSyncCredentials();
+  const debug = {
+    credentials: creds ? { username: creds.username, hasPassword: !!creds.password } : null,
+    syncResult: state.lastSyncResult,
+    stats: {
+      totalListenSeconds: state.totalListenSeconds,
+      totalUniqueHeard: state.totalUniqueHeard,
+      lastPlayedAt: state.lastPlayedAt
+    },
+    state: {
+      heardTracks: state.heardTracks.size,
+      favoriteTracks: state.favoriteTracks.size,
+      playHistory: state.playHistory.length,
+      historyIndex: state.historyIndex,
+      secretUnlocked: state.secretUnlocked,
+      currentScreen: state.currentScreen
+    },
+    localStorage: {
+      keys: Object.keys(localStorage).length,
+      estimatedSize: JSON.stringify(localStorage).length + ' chars'
+    },
+    network: { online: navigator.onLine },
+    serviceWorker: { controlled: !!navigator.serviceWorker?.controller }
+  };
+  elements.debugOutput.textContent = JSON.stringify(debug, null, 2);
 }
 
 /**
@@ -639,10 +692,25 @@ export function init() {
   state.pendingTrackPath = getTrackPathFromHash();
 
   // Bind event listeners
-  elements.enterBtn.addEventListener('click', handleEnter);
+  async function handleEnterWithCreds() {
+    // If new user with credential inputs visible
+    if (elements.enterCreds && !elements.enterCreds.classList.contains('hidden')) {
+      const username = elements.enterUserInput?.value?.trim();
+      const password = elements.enterPassInput?.value;
+      if (username && password) {
+        saveSyncCredentials(username, password);
+        // Non-blocking sync after enter
+        fullSync(username, password).then(result => {
+          state.lastSyncResult = result;
+        }).catch(() => {});
+      }
+    }
+    handleEnter();
+  }
+  elements.enterBtn.addEventListener('click', handleEnterWithCreds);
   elements.enterBtn.addEventListener('touchend', (e) => {
     e.preventDefault();
-    handleEnter();
+    handleEnterWithCreds();
   });
   if (elements.backBtn) {
     elements.backBtn.addEventListener('click', playPreviousTrack);
@@ -741,9 +809,79 @@ export function init() {
     elements.offlineCacheBtn.addEventListener('click', syncFavoritesCache);
   }
 
-  // State sync button — prompt for credentials or run sync if already connected
-  if (elements.stateSyncBtn) {
-    elements.stateSyncBtn.addEventListener('click', handleSyncClick);
+  // Profile nav button — opens profile screen
+  if (elements.profileNavBtn) {
+    elements.profileNavBtn.addEventListener('click', () => {
+      populateProfile();
+      showScreen('profile-screen');
+    });
+  }
+
+  // Profile back button
+  if (elements.profileBackBtn) {
+    elements.profileBackBtn.addEventListener('click', () => {
+      showScreen('player-screen');
+    });
+  }
+
+  // Profile sync button — connect or force sync
+  if (elements.profileSyncBtn) {
+    elements.profileSyncBtn.addEventListener('click', async () => {
+      const creds = getSyncCredentials();
+
+      if (creds) {
+        // Force sync
+        elements.profileSyncBtn.classList.add('syncing');
+        elements.profileSyncBtn.textContent = 'SYNCING...';
+        if (elements.profileSyncDot) elements.profileSyncDot.className = 'sync-status-dot syncing';
+
+        const result = await fullSync(creds.username, creds.password);
+        state.lastSyncResult = result;
+
+        elements.profileSyncBtn.classList.remove('syncing');
+        populateProfile();
+
+        if (result.status === 'ok' && result.pullResult?.details?.secretChanged) {
+          updateModeBasedUI();
+        }
+      } else {
+        // No credentials — prompt
+        const username = prompt('SYNC USERNAME');
+        if (!username) return;
+        const password = prompt('SYNC PASSWORD');
+        if (!password) return;
+
+        elements.profileSyncBtn.classList.add('syncing');
+        elements.profileSyncBtn.textContent = 'CONNECTING...';
+        if (elements.profileSyncDot) elements.profileSyncDot.className = 'sync-status-dot syncing';
+
+        const result = await fullSync(username.trim(), password);
+        state.lastSyncResult = result;
+
+        elements.profileSyncBtn.classList.remove('syncing');
+
+        if (result.status === 'ok') {
+          saveSyncCredentials(username.trim(), password);
+          if (result.pullResult?.details?.secretChanged) {
+            updateModeBasedUI();
+          }
+        } else {
+          alert(result.error || 'Connection failed');
+        }
+
+        populateProfile();
+      }
+    });
+  }
+
+  // Profile disconnect button
+  if (elements.profileDisconnectBtn) {
+    elements.profileDisconnectBtn.addEventListener('click', () => {
+      if (!confirm('Disconnect sync? Your data stays on this device.')) return;
+      clearSyncCredentials();
+      state.lastSyncResult = null;
+      populateProfile();
+    });
   }
 
   // Repeat button
@@ -802,20 +940,36 @@ export function init() {
     filterTracks(state.searchQuery);
   });
 
-  // Auto-sync on load if credentials exist
+  // Enter screen personalization
   const syncCreds = getSyncCredentials();
   if (syncCreds) {
-    elements.stateSyncBtn?.classList.add('connected');
+    // Returning user — show welcome
+    if (elements.enterGreeting) {
+      elements.enterGreeting.classList.remove('hidden');
+    }
+    if (elements.enterUsernameDisplay) {
+      elements.enterUsernameDisplay.textContent = syncCreds.username;
+      elements.enterUsernameDisplay.classList.remove('hidden');
+    }
+    // Auto-pull in background
     pullState(syncCreds.username, syncCreds.password).then(result => {
+      state.lastSyncResult = result;
       if (result.status === 'merged' && result.details) {
         if (result.details.secretChanged) {
           updateModeBasedUI();
         }
         if (result.details.favoritesAdded > 0) {
-          // Refresh track list if on search screen
           if (typeof renderTrackList === 'function') renderTrackList();
         }
       }
     }).catch(() => {});
+  } else {
+    // New user — show credential inputs
+    if (elements.enterCreds) {
+      elements.enterCreds.classList.remove('hidden');
+    }
+    if (elements.enterBtn) {
+      elements.enterBtn.textContent = 'CONNECT';
+    }
   }
 }

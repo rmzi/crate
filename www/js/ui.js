@@ -13,6 +13,7 @@ const SCREEN_ID_MAP = {
   'enter-screen': SCREENS.ENTER,
   'player-screen': SCREENS.PLAYER,
   'search-screen': SCREENS.SEARCH,
+  'profile-screen': SCREENS.PROFILE,
   'error-screen': SCREENS.ERROR
 };
 
@@ -95,7 +96,7 @@ export function showScreen(screenId, pushHistory = true) {
     // Animate title position based on screen
     const titleLogo = document.getElementById('title-logo');
     if (titleLogo) {
-      if (screenId === 'player-screen' || screenId === 'search-screen') {
+      if (screenId === 'player-screen' || screenId === 'search-screen' || screenId === 'profile-screen') {
         titleLogo.classList.add('at-top');
       } else {
         titleLogo.classList.remove('at-top');

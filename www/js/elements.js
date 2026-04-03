@@ -67,9 +67,29 @@ export const elements = {
   miniPlayerInfo: null,
   downloadIndicator: null,
   offlineCacheBtn: null,
-  stateSyncBtn: null,
   syncProgress: null,
-  repeatBtn: null
+  repeatBtn: null,
+  // Profile screen
+  profileNavBtn: null,
+  profileScreen: null,
+  profileBackBtn: null,
+  profileUsername: null,
+  profileListenTime: null,
+  profileHeard: null,
+  profileFavs: null,
+  profileLastPlayed: null,
+  profileSyncDot: null,
+  profileSyncStatus: null,
+  profileSyncDetail: null,
+  profileSyncBtn: null,
+  profileDisconnectBtn: null,
+  debugOutput: null,
+  // Enter screen personalization
+  enterGreeting: null,
+  enterUsernameDisplay: null,
+  enterCreds: null,
+  enterUserInput: null,
+  enterPassInput: null
 };
 
 /**
@@ -136,7 +156,25 @@ export function initElements() {
   elements.miniPlayerInfo = document.getElementById('mini-player-info');
   elements.downloadIndicator = document.getElementById('download-indicator');
   elements.offlineCacheBtn = document.getElementById('offline-cache-btn');
-  elements.stateSyncBtn = document.getElementById('state-sync-btn');
   elements.syncProgress = document.getElementById('sync-progress');
   elements.repeatBtn = document.getElementById('repeat-btn');
+  elements.profileNavBtn = document.getElementById('profile-nav-btn');
+  elements.profileScreen = document.getElementById('profile-screen');
+  elements.profileBackBtn = document.getElementById('profile-back-btn');
+  elements.profileUsername = document.getElementById('profile-username');
+  elements.profileListenTime = document.getElementById('profile-listen-time');
+  elements.profileHeard = document.getElementById('profile-heard');
+  elements.profileFavs = document.getElementById('profile-favs');
+  elements.profileLastPlayed = document.getElementById('profile-last-played');
+  elements.profileSyncDot = document.getElementById('profile-sync-dot');
+  elements.profileSyncStatus = document.getElementById('profile-sync-status');
+  elements.profileSyncDetail = document.getElementById('profile-sync-detail');
+  elements.profileSyncBtn = document.getElementById('profile-sync-btn');
+  elements.profileDisconnectBtn = document.getElementById('profile-disconnect-btn');
+  elements.debugOutput = document.getElementById('debug-output');
+  elements.enterGreeting = document.getElementById('enter-greeting');
+  elements.enterUsernameDisplay = document.getElementById('enter-username-display');
+  elements.enterCreds = document.getElementById('enter-creds');
+  elements.enterUserInput = document.getElementById('enter-user-input');
+  elements.enterPassInput = document.getElementById('enter-pass-input');
 }

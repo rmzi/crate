@@ -21,7 +21,8 @@ export const SCREENS = {
   ENTER: 'enter',
   PLAYER: 'player',
   SEARCH: 'search',
-  ERROR: 'error'
+  ERROR: 'error',
+  PROFILE: 'profile'
 };
 
 /**
@@ -75,7 +76,14 @@ export const state = {
   cacheSyncing: false,
   cacheSyncProgress: null,
   // Repeat mode
-  repeatMode: 'off'
+  repeatMode: 'off',
+  // Listening stats (cumulative, never reset)
+  totalListenSeconds: 0,
+  totalUniqueHeard: 0,
+  lastPlayedAt: null,
+  // Sync tracking
+  lastSyncResult: null,
+  _playStartTime: null,
 };
 
 /**

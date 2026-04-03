@@ -108,6 +108,10 @@ export function getNextTrack() {
  * @param {string} trackId - Track ID
  */
 export function markTrackHeard(trackId) {
+  // Track cumulative unique heard (doesn't reset like heardTracks)
+  if (!state.heardTracks.has(trackId)) {
+    state.totalUniqueHeard++;
+  }
   state.heardTracks.add(trackId);
   saveHeardTracks();
   debouncedPush();
