@@ -23,7 +23,8 @@ import {
   handleBAInput,
   handleTouchStart,
   handleTouchEnd,
-  setStartPlayerFn
+  setStartPlayerFn,
+  showCashRain
 } from './konami.js';
 import { startVoiceRecognition, setVoiceCallbacks } from './voice.js';
 import {
@@ -572,6 +573,57 @@ function formatListenTime(seconds) {
 }
 
 /**
+ * Check if current user is admin (username "rmzi")
+ */
+function isAdmin() {
+  const creds = getSyncCredentials();
+  return creds && creds.username === 'rmzi';
+}
+
+/**
+ * Activate admin mode — unlock everything, show debug strip
+ */
+function activateAdminMode() {
+  state.adminMode = true;
+  // Unlock secret mode
+  state.mode = MODES.SECRET;
+  state.secretUnlocked = true;
+  setSecretUnlocked(true);
+  // Unlock all circles
+  if (state.totalUniqueHeard < 999) {
+    state.totalUniqueHeard = 999;
+    state.currentCircle = 'treachery';
+    applyCircleTheme('treachery');
+    saveListenStats();
+  }
+  // Show debug strip
+  if (elements.debugStrip) {
+    elements.debugStrip.classList.remove('hidden');
+  }
+  updateDebugStrip();
+  updateModeBasedUI();
+}
+
+/**
+ * Update debug strip with current state
+ */
+function updateDebugStrip() {
+  if (!state.adminMode || !elements.debugStrip) return;
+  if (elements.debugStripCircle) {
+    elements.debugStripCircle.textContent = state.currentCircle || 'limbo';
+  }
+  if (elements.debugStripHeard) {
+    elements.debugStripHeard.textContent = 'heard:' + state.totalUniqueHeard;
+  }
+  if (elements.debugStripScreen) {
+    elements.debugStripScreen.textContent = state.currentScreen;
+  }
+  if (elements.debugStripOnline) {
+    elements.debugStripOnline.textContent = navigator.onLine ? 'online' : 'offline';
+  }
+}
+
+/**
  * Populate profile screen with current stats and sync status
  */
 function populateProfile() {
@@ -676,6 +728,7 @@ function populateProfile() {
 
   // DEBUG: populate debug info
   populateDebugInfo();
+  updateDebugStrip();
 }
 
 /** DEBUG: Remove before release */
@@ -891,6 +944,10 @@ export function init() {
 
       if (result.status === 'ok') {
         saveSyncCredentials(username, password);
+        // Check for admin mode
+        if (username === 'rmzi') {
+          activateAdminMode();
+        }
         if (result.pullResult?.details?.secretChanged) {
           updateModeBasedUI();
         }
@@ -919,6 +976,9 @@ export function init() {
       if (!confirm('Disconnect sync? Your data stays on this device.')) return;
       clearSyncCredentials();
       state.lastSyncResult = null;
+      state.adminMode = false;
+      if (elements.debugStrip) elements.debugStrip.classList.add('hidden');
+      if (elements.debugMenu) elements.debugMenu.classList.add('hidden');
       populateProfile();
     });
   }
@@ -993,5 +1053,79 @@ export function init() {
         }
       }
     }).catch(() => {});
+  }
+
+  // Activate admin mode if logged in as rmzi
+  if (isAdmin()) {
+    activateAdminMode();
+  }
+
+  // Debug strip toggle
+  if (elements.debugStrip) {
+    elements.debugStrip.addEventListener('click', () => {
+      if (elements.debugMenu) {
+        elements.debugMenu.classList.toggle('hidden');
+      }
+    });
+  }
+
+  // Debug menu actions
+  if (elements.debugMenu) {
+    // Heard count buttons
+    elements.debugMenu.querySelectorAll('.debug-action[data-heard]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const value = parseInt(btn.dataset.heard);
+        state.totalUniqueHeard = value;
+        const circle = getCurrentCircle(value);
+        state.currentCircle = circle.id;
+        applyCircleTheme(circle.id);
+        saveListenStats();
+        updateDebugStrip();
+        populateProfile();
+      });
+    });
+
+    // Cash rain
+    const cashRainBtn = document.getElementById('debug-cash-rain');
+    if (cashRainBtn) {
+      cashRainBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showCashRain();
+        elements.debugMenu.classList.add('hidden');
+      });
+    }
+
+    // Force sync
+    const forceSyncBtn = document.getElementById('debug-force-sync');
+    if (forceSyncBtn) {
+      forceSyncBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const creds = getSyncCredentials();
+        if (creds) {
+          forceSyncBtn.textContent = 'SYNCING...';
+          const result = await fullSync(creds.username, creds.password);
+          state.lastSyncResult = result;
+          forceSyncBtn.textContent = result.status === 'ok' ? 'SYNCED!' : 'ERROR';
+          setTimeout(() => { forceSyncBtn.textContent = 'FORCE SYNC'; }, 1500);
+          updateDebugStrip();
+        }
+      });
+    }
+
+    // Toggle secret
+    const toggleSecretBtn = document.getElementById('debug-toggle-secret');
+    if (toggleSecretBtn) {
+      toggleSecretBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        state.secretUnlocked = !state.secretUnlocked;
+        state.mode = state.secretUnlocked ? MODES.SECRET : MODES.REGULAR;
+        setSecretUnlocked(state.secretUnlocked);
+        updateModeBasedUI();
+        toggleSecretBtn.textContent = state.secretUnlocked ? 'SECRET: ON' : 'SECRET: OFF';
+        setTimeout(() => { toggleSecretBtn.textContent = 'TOGGLE SECRET'; }, 1000);
+        updateDebugStrip();
+      });
+    }
   }
 }

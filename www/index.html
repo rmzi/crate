@@ -232,6 +232,33 @@
       </div>
     </div>
 
+    <!-- Admin debug strip (hidden unless admin mode) -->
+    <div id="debug-strip" class="debug-strip hidden">
+      <div id="debug-strip-info" class="debug-strip-info">
+        <span id="debug-strip-circle">limbo</span>
+        <span class="debug-sep">|</span>
+        <span id="debug-strip-heard">0</span>
+        <span class="debug-sep">|</span>
+        <span id="debug-strip-screen">enter</span>
+        <span class="debug-sep">|</span>
+        <span id="debug-strip-online">online</span>
+      </div>
+    </div>
+    <div id="debug-menu" class="debug-menu hidden">
+      <div class="debug-menu-grid">
+        <button class="debug-action" data-heard="0">HEARD: 0</button>
+        <button class="debug-action" data-heard="5">HEARD: 5</button>
+        <button class="debug-action" data-heard="12">HEARD: 12</button>
+        <button class="debug-action" data-heard="20">HEARD: 20</button>
+        <button class="debug-action" data-heard="35">HEARD: 35</button>
+        <button class="debug-action" data-heard="50">HEARD: 50</button>
+        <button class="debug-action" data-heard="100">HEARD: 100</button>
+        <button class="debug-action" id="debug-cash-rain">CASH RAIN</button>
+        <button class="debug-action" id="debug-force-sync">FORCE SYNC</button>
+        <button class="debug-action" id="debug-toggle-secret">TOGGLE SECRET</button>
+      </div>
+    </div>
+
     <!-- Mini player footer (persistent) -->
     <div id="mini-player" class="mini-player hidden">
       <div class="mini-player-info" id="mini-player-info">

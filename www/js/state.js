@@ -82,6 +82,8 @@ export const state = {
   totalUniqueHeard: 0,
   lastPlayedAt: null,
   currentCircle: null,
+  // Admin/debug mode
+  adminMode: false,
   // Sync tracking
   lastSyncResult: null,
   _playStartTime: null,

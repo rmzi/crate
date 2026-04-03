@@ -94,6 +94,13 @@ export const elements = {
   profileCredsPassword: null,
   profileConnectBtn: null,
   profileSyncInfo: null,
+  // Debug strip
+  debugStrip: null,
+  debugStripCircle: null,
+  debugStripHeard: null,
+  debugStripScreen: null,
+  debugStripOnline: null,
+  debugMenu: null,
 };
 
 /**
@@ -184,4 +191,10 @@ export function initElements() {
   elements.profileCredsPassword = document.getElementById('profile-creds-password');
   elements.profileConnectBtn = document.getElementById('profile-connect-btn');
   elements.profileSyncInfo = document.getElementById('profile-sync-info');
+  elements.debugStrip = document.getElementById('debug-strip');
+  elements.debugStripCircle = document.getElementById('debug-strip-circle');
+  elements.debugStripHeard = document.getElementById('debug-strip-heard');
+  elements.debugStripScreen = document.getElementById('debug-strip-screen');
+  elements.debugStripOnline = document.getElementById('debug-strip-online');
+  elements.debugMenu = document.getElementById('debug-menu');
 }

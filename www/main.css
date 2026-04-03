@@ -2426,3 +2426,81 @@ body::after {
   border-color: #4a4;
   color: #4a4;
 }
+
+/* ============================================
+   Admin Debug Strip
+   ============================================ */
+.debug-strip {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10000;
+  background: rgba(0, 255, 0, 0.1);
+  border-top: 1px solid rgba(0, 255, 0, 0.3);
+  padding: 4px 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  color: #0f0;
+  cursor: pointer;
+  user-select: none;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.debug-strip-info {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
+}
+
+.debug-sep {
+  opacity: 0.4;
+}
+
+.debug-menu {
+  position: fixed;
+  bottom: 24px;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.95);
+  border-top: 1px solid rgba(0, 255, 0, 0.3);
+  padding: 12px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.debug-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 6px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.debug-action {
+  background: transparent;
+  border: 1px solid rgba(0, 255, 0, 0.4);
+  color: #0f0;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  padding: 8px 4px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.debug-action:hover {
+  background: rgba(0, 255, 0, 0.15);
+}
+
+.debug-action:active {
+  background: rgba(0, 255, 0, 0.3);
+}
+
+/* Shift mini-player up when debug strip is visible */
+.debug-strip:not(.hidden) ~ .mini-player {
+  bottom: 24px;
+}
