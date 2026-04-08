@@ -15,6 +15,7 @@ export const CONFIG = {
   STORAGE_KEY: `${prefix}_heard_tracks`,
   FAVORITES_KEY: `${prefix}_favorite_tracks`,
   SECRET_KEY: `${prefix}_secret_unlocked`,
+  STATS_KEY: `${prefix}_listen_stats`,
   COOKIE_NAMES: ['CloudFront-Policy', 'CloudFront-Signature', 'CloudFront-Key-Pair-Id'],
   PASSWORD: SITE.password
 };

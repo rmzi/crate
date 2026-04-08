@@ -94,3 +94,67 @@ export function saveFavoriteTracks() {
     console.warn('Failed to save favorite tracks:', e);
   }
 }
+
+/**
+ * Save play history to localStorage
+ */
+export function savePlayHistory() {
+  try {
+    localStorage.setItem(CONFIG.STORAGE_KEY.replace('heard_tracks', 'play_history'),
+      JSON.stringify({ history: state.playHistory, index: state.historyIndex }));
+  } catch (e) {
+    console.warn('Failed to save play history:', e);
+  }
+}
+
+/**
+ * Load play history from localStorage
+ */
+export function loadPlayHistory() {
+  try {
+    const stored = localStorage.getItem(CONFIG.STORAGE_KEY.replace('heard_tracks', 'play_history'));
+    if (stored) {
+      const { history, index } = JSON.parse(stored);
+      if (Array.isArray(history)) {
+        state.playHistory = history;
+        state.historyIndex = typeof index === 'number' ? index : history.length - 1;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to load play history:', e);
+  }
+}
+
+/**
+ * Save listening stats to localStorage
+ */
+export function saveListenStats() {
+  try {
+    localStorage.setItem(CONFIG.STATS_KEY, JSON.stringify({
+      totalListenSeconds: state.totalListenSeconds,
+      totalUniqueHeard: state.totalUniqueHeard,
+      lastPlayedAt: state.lastPlayedAt,
+      currentCircle: state.currentCircle
+    }));
+  } catch (e) {
+    console.warn('Failed to save listen stats:', e);
+  }
+}
+
+/**
+ * Load listening stats from localStorage
+ */
+export function loadListenStats() {
+  try {
+    const stored = localStorage.getItem(CONFIG.STATS_KEY);
+    if (stored) {
+      const data = JSON.parse(stored);
+      state.totalListenSeconds = data.totalListenSeconds || 0;
+      state.totalUniqueHeard = data.totalUniqueHeard || 0;
+      state.lastPlayedAt = data.lastPlayedAt || null;
+      state.currentCircle = data.currentCircle || null;
+    }
+  } catch (e) {
+    console.warn('Failed to load listen stats:', e);
+  }
+}

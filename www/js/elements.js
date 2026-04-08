@@ -37,6 +37,7 @@ export const elements = {
   konamiProgress: null,
   artworkContainer: null,
   artworkImage: null,
+  artworkCanvas: null,
   passwordContainer: null,
   passwordInput: null,
   passwordError: null,
@@ -66,9 +67,48 @@ export const elements = {
   miniNextBtn: null,
   miniPlayerInfo: null,
   downloadIndicator: null,
-  syncBtn: null,
+  offlineCacheBtn: null,
   syncProgress: null,
-  repeatBtn: null
+  repeatBtn: null,
+  // Profile screen
+  profileNavBtn: null,
+  profileScreen: null,
+  profileBackBtn: null,
+  profileUsername: null,
+  profileListenTime: null,
+  profileHeard: null,
+  profileFavs: null,
+  profileLastPlayed: null,
+  profileSyncDot: null,
+  profileSyncStatus: null,
+  profileSyncDetail: null,
+  profileSyncBtn: null,
+  profileDisconnectBtn: null,
+  debugOutput: null,
+  // Circle progress
+  circleProgress: null,
+  circleMarks: null,
+  // Profile connect / sync info
+  profileCreds: null,
+  profileConnectBtn: null,
+  profileSyncInfo: null,
+  // Sync modal
+  syncModal: null,
+  syncModalBackdrop: null,
+  syncModalClose: null,
+  syncModalUsername: null,
+  syncModalPassword: null,
+  syncUsernameCount: null,
+  syncPasswordCount: null,
+  syncModalError: null,
+  syncModalSubmit: null,
+  // Debug strip
+  debugStrip: null,
+  debugStripCircle: null,
+  debugStripHeard: null,
+  debugStripScreen: null,
+  debugStripOnline: null,
+  debugMenu: null,
 };
 
 /**
@@ -105,6 +145,7 @@ export function initElements() {
   elements.konamiProgress = document.getElementById('konami-progress');
   elements.artworkContainer = document.getElementById('artwork-container');
   elements.artworkImage = document.getElementById('artwork-image');
+  elements.artworkCanvas = document.getElementById('artwork-canvas');
   elements.passwordContainer = document.getElementById('password-container');
   elements.passwordInput = document.getElementById('password-input');
   elements.passwordError = document.getElementById('password-error');
@@ -134,7 +175,41 @@ export function initElements() {
   elements.miniNextBtn = document.getElementById('mini-next-btn');
   elements.miniPlayerInfo = document.getElementById('mini-player-info');
   elements.downloadIndicator = document.getElementById('download-indicator');
-  elements.syncBtn = document.getElementById('sync-btn');
+  elements.offlineCacheBtn = document.getElementById('offline-cache-btn');
   elements.syncProgress = document.getElementById('sync-progress');
   elements.repeatBtn = document.getElementById('repeat-btn');
+  elements.profileNavBtn = document.getElementById('profile-nav-btn');
+  elements.profileScreen = document.getElementById('profile-screen');
+  elements.profileBackBtn = document.getElementById('profile-back-btn');
+  elements.profileUsername = document.getElementById('profile-username');
+  elements.profileListenTime = document.getElementById('profile-listen-time');
+  elements.profileHeard = document.getElementById('profile-heard');
+  elements.profileFavs = document.getElementById('profile-favs');
+  elements.profileLastPlayed = document.getElementById('profile-last-played');
+  elements.profileSyncDot = document.getElementById('profile-sync-dot');
+  elements.profileSyncStatus = document.getElementById('profile-sync-status');
+  elements.profileSyncDetail = document.getElementById('profile-sync-detail');
+  elements.profileSyncBtn = document.getElementById('profile-sync-btn');
+  elements.profileDisconnectBtn = document.getElementById('profile-disconnect-btn');
+  elements.debugOutput = document.getElementById('debug-output');
+  elements.circleProgress = document.getElementById('circle-progress');
+  elements.circleMarks = document.getElementById('circle-marks');
+  elements.profileCreds = document.getElementById('profile-creds');
+  elements.profileConnectBtn = document.getElementById('profile-connect-btn');
+  elements.profileSyncInfo = document.getElementById('profile-sync-info');
+  elements.syncModal = document.getElementById('sync-modal');
+  elements.syncModalBackdrop = document.getElementById('sync-modal-backdrop');
+  elements.syncModalClose = document.getElementById('sync-modal-close');
+  elements.syncModalUsername = document.getElementById('sync-modal-username');
+  elements.syncModalPassword = document.getElementById('sync-modal-password');
+  elements.syncUsernameCount = document.getElementById('sync-username-count');
+  elements.syncPasswordCount = document.getElementById('sync-password-count');
+  elements.syncModalError = document.getElementById('sync-modal-error');
+  elements.syncModalSubmit = document.getElementById('sync-modal-submit');
+  elements.debugStrip = document.getElementById('debug-strip');
+  elements.debugStripCircle = document.getElementById('debug-strip-circle');
+  elements.debugStripHeard = document.getElementById('debug-strip-heard');
+  elements.debugStripScreen = document.getElementById('debug-strip-screen');
+  elements.debugStripOnline = document.getElementById('debug-strip-online');
+  elements.debugMenu = document.getElementById('debug-menu');
 }

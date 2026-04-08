@@ -122,40 +122,58 @@ function fireKonamiReward() {
 }
 
 /**
- * Show cash rain animation
+ * Show cash rain animation — deep 3D pour
  */
 export function showCashRain() {
   const overlay = document.createElement('div');
   overlay.className = 'cash-rain';
 
-  // $100 bill textures
   const billImages = ['/img/benj_front.jpeg', '/img/benj_back.jpeg'];
-  const sizes = [
-    { w: 50, h: 21 },
-    { w: 70, h: 30 },
-    { w: 90, h: 38 }
+
+  // Size tiers for parallax depth (small = far away, large = close)
+  const sizeTiers = [
+    { w: 30, h: 13, opacity: 0.4, zIndex: 1 },   // far background
+    { w: 45, h: 19, opacity: 0.6, zIndex: 2 },   // mid-back
+    { w: 60, h: 25, opacity: 0.75, zIndex: 3 },  // middle
+    { w: 80, h: 34, opacity: 0.9, zIndex: 4 },   // mid-front
+    { w: 100, h: 42, opacity: 1, zIndex: 5 },     // foreground
   ];
-  const numBills = 80;
 
-  // Create 3 waves of falling bills
-  for (let wave = 0; wave < 3; wave++) {
-    const waveDelay = wave * 0.4;
-    const billsInWave = Math.floor(numBills / 3);
+  const totalBills = 150;
+  const numWaves = 5;
+  const billsPerWave = Math.floor(totalBills / numWaves);
 
-    for (let i = 0; i < billsInWave; i++) {
+  for (let wave = 0; wave < numWaves; wave++) {
+    const waveDelay = wave * 0.3;
+
+    for (let i = 0; i < billsPerWave; i++) {
       const bill = document.createElement('div');
       bill.className = 'bill';
 
-      const size = sizes[Math.floor(Math.random() * sizes.length)];
+      // Weight distribution: more small bills (far) than large (close)
+      const tierRoll = Math.random();
+      let tier;
+      if (tierRoll < 0.3) tier = sizeTiers[0];       // 30% tiny
+      else if (tierRoll < 0.55) tier = sizeTiers[1];  // 25% small
+      else if (tierRoll < 0.75) tier = sizeTiers[2];  // 20% medium
+      else if (tierRoll < 0.9) tier = sizeTiers[3];   // 15% large
+      else tier = sizeTiers[4];                        // 10% huge
+
       const img = billImages[Math.floor(Math.random() * billImages.length)];
 
-      bill.style.setProperty('--bill-width', size.w + 'px');
-      bill.style.setProperty('--bill-height', size.h + 'px');
+      bill.style.setProperty('--bill-width', tier.w + 'px');
+      bill.style.setProperty('--bill-height', tier.h + 'px');
       bill.style.setProperty('--bill-img', `url(${img})`);
+      bill.style.setProperty('--bill-opacity', tier.opacity);
+      bill.style.zIndex = tier.zIndex;
       bill.style.left = (-10 + Math.random() * 120) + 'vw';
-      bill.style.setProperty('--fall-duration', (2 + Math.random() * 1.5) + 's');
+
+      // Slower fall for small (far) bills, faster for large (close)
+      const baseDuration = 2 + (5 - tier.zIndex) * 0.4;
+      bill.style.setProperty('--fall-duration', (baseDuration + Math.random() * 1.5) + 's');
       bill.style.setProperty('--fall-delay', (waveDelay + Math.random() * 0.5) + 's');
-      // Random spin amounts
+
+      // Random 3D tumble
       bill.style.setProperty('--spin-x', (360 + Math.random() * 720) * (Math.random() > 0.5 ? 1 : -1) + 'deg');
       bill.style.setProperty('--spin-y', (360 + Math.random() * 720) * (Math.random() > 0.5 ? 1 : -1) + 'deg');
       bill.style.setProperty('--spin-z', (180 + Math.random() * 360) * (Math.random() > 0.5 ? 1 : -1) + 'deg');
@@ -166,7 +184,7 @@ export function showCashRain() {
   }
 
   document.body.appendChild(overlay);
-  setTimeout(() => overlay.remove(), 3000);
+  setTimeout(() => overlay.remove(), 4500);
 }
 
 /**

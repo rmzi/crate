@@ -1,0 +1,1 @@
+- [State-sharing feature context](project_state_sharing.md) — goal, key state fields, existing AWS infra, no user-auth today

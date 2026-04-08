@@ -30,7 +30,11 @@ export function setOfflineChangeCallback(fn) {
  */
 export function isTrackCached(track) {
   if (!track || !track.path) return false;
-  return cachedTracks.has(getMediaUrl(track.path));
+  // Check SW Cache API (auto-cached on play)
+  if (cachedTracks.has(getMediaUrl(track.path))) return true;
+  // Check IndexedDB cache (manually synced via offline cache button)
+  if (state.cachedTracks && state.cachedTracks.has(track.id)) return true;
+  return false;
 }
 
 /**

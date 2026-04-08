@@ -10,6 +10,7 @@
  */
 
 const fs = require('fs');
+const crypto = require('crypto');
 const path = require('path');
 const matter = require('gray-matter');
 const { marked } = require('marked');
@@ -33,11 +34,13 @@ const siteObj = {
   url: frontmatter.url || '',
   password: frontmatter.password || null,
   gaTrackingId: frontmatter.ga_tracking_id || null,
+  admin: frontmatter.admin ? crypto.createHash('sha256').update(frontmatter.admin).digest('hex') : null,
   theme: {
     accent: frontmatter.theme?.accent || '#ff0000',
     font: frontmatter.theme?.font || "'Special Elite', cursive",
     titleFont: frontmatter.theme?.title_font || "'Anton', Impact, sans-serif",
     searchFont: frontmatter.theme?.search_font || "'Bebas Neue', sans-serif",
+    circles: frontmatter.theme?.circles || null,
   }
 };
 

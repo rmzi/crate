@@ -1,6 +1,18 @@
 ---
 name: Crate
 url: https://crate.rmzi.world
+admin: rmzi
+theme:
+  circles:
+    limbo: "rgba(255,255,255,0.25)"
+    lust: "rgba(200,50,80,0.25)"
+    gluttony: "rgba(212,175,55,0.25)"
+    greed: "rgba(50,180,80,0.25)"
+    wrath: "rgba(220,30,30,0.25)"
+    heresy: "rgba(230,120,20,0.25)"
+    violence: "rgba(140,20,30,0.25)"
+    fraud: "rgba(120,40,180,0.25)"
+    treachery: "rgba(100,180,255,0.25)"
 ---
 
 ### What

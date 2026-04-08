@@ -29,6 +29,7 @@ AI-assisted development methodology. Skills for consistency. Agents for scale.
 | `/commit` | Before any git commit |
 | `/review` | Before submitting or reviewing PRs |
 | `/debug` | When troubleshooting issues |
+| `/debug-in-ui` | Visual debug rendering during UI development |
 | `/test` | Writing or running tests |
 | `/design` | Architecture decisions, new features |
 | `/worktree` | Branch isolation, parallel work |

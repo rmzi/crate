@@ -7,7 +7,7 @@ import { MODES } from './config.js';
 import { SITE } from './site.config.js';
 import { state, isSecretMode } from './state.js';
 import { elements, initElements } from './elements.js';
-import { getSecretUnlocked, setSecretUnlocked } from './storage.js';
+import { getSecretUnlocked, setSecretUnlocked, saveListenStats } from './storage.js';
 import { clearAllCookies } from './cookies.js';
 import { trackEvent } from './analytics.js';
 import { getTrackPathFromHash } from './hash.js';
@@ -23,7 +23,8 @@ import {
   handleBAInput,
   handleTouchStart,
   handleTouchEnd,
-  setStartPlayerFn
+  setStartPlayerFn,
+  showCashRain
 } from './konami.js';
 import { startVoiceRecognition, setVoiceCallbacks } from './voice.js';
 import {
@@ -47,9 +48,12 @@ import {
   toggleFavoritesFilter,
   filterTracks,
   syncFavoritesCache,
-  cycleRepeatMode
+  cycleRepeatMode,
+  updateModeBasedUI
 } from './player.js';
 import { initPWA, setOfflineChangeCallback } from './pwa.js';
+import { fullSync, getSyncCredentials, saveSyncCredentials, clearSyncCredentials, pullState } from './sync.js';
+import { getCurrentCircle, getUnlockedCircles, applyCircleTheme, getCircleIndex, CIRCLES } from './circles.js';
 
 // Set up cross-module function references
 setStartPlayerFn(startPlayer);
@@ -67,8 +71,10 @@ setAudioHandlers({
  * @param {KeyboardEvent} e
  */
 function handleKeydown(e) {
-  // Don't handle if typing in search
-  if (document.activeElement === elements.trackSearch) {
+  // Don't handle if typing in search or sync modal inputs
+  if (document.activeElement === elements.trackSearch ||
+      document.activeElement === elements.syncModalUsername ||
+      document.activeElement === elements.syncModalPassword) {
     return;
   }
 
@@ -224,18 +230,18 @@ function setupPlayerSwipeHandlers() {
  * Setup long-press to download on artwork (desktop only)
  */
 function setupArtworkLongPress() {
-  if (!elements.artworkImage) return;
+  if (!elements.artworkContainer) return;
 
   let pressTimer = null;
 
-  elements.artworkImage.addEventListener('mousedown', (e) => {
+  elements.artworkContainer.addEventListener('mousedown', (e) => {
     if (!isSecretMode() || !state.currentTrack) return;
     e.preventDefault();
 
-    elements.artworkImage.classList.add('holding');
+    elements.artworkContainer.classList.add('holding');
     pressTimer = setTimeout(() => {
       state.artworkLongPressTriggered = true;
-      elements.artworkImage.classList.remove('holding');
+      elements.artworkContainer.classList.remove('holding');
       downloadTrack(state.currentTrack, 'long_press');
     }, 1500);
   });
@@ -243,11 +249,11 @@ function setupArtworkLongPress() {
   function cancelPress() {
     clearTimeout(pressTimer);
     pressTimer = null;
-    elements.artworkImage.classList.remove('holding');
+    elements.artworkContainer.classList.remove('holding');
   }
 
-  elements.artworkImage.addEventListener('mouseup', cancelPress);
-  elements.artworkImage.addEventListener('mouseleave', cancelPress);
+  elements.artworkContainer.addEventListener('mouseup', cancelPress);
+  elements.artworkContainer.addEventListener('mouseleave', cancelPress);
 }
 
 /**
@@ -558,6 +564,391 @@ function setupFirstInteractionUnlock() {
 }
 
 /**
+ * Format seconds into human-readable time
+ */
+function formatListenTime(seconds) {
+  if (seconds < 60) return `${seconds}s`;
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  if (hours > 0) return `${hours}h ${mins}m`;
+  return `${mins}m`;
+}
+
+/**
+ * Hash a string with SHA-256 (hex output)
+ */
+async function sha256(str) {
+  const encoded = new TextEncoder().encode(str);
+  const hash = await crypto.subtle.digest('SHA-256', encoded);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Check if a username matches the admin hash from site config
+ */
+async function checkAdmin(username) {
+  if (!SITE.admin || !username) return false;
+  const hash = await sha256(username);
+  return hash === SITE.admin;
+}
+
+/**
+ * Activate admin mode — unlock everything, show debug strip
+ */
+function activateAdminMode() {
+  state.adminMode = true;
+  // Unlock secret mode
+  state.mode = MODES.SECRET;
+  state.secretUnlocked = true;
+  setSecretUnlocked(true);
+  // Unlock all circles
+  if (state.totalUniqueHeard < 999) {
+    state.totalUniqueHeard = 999;
+    state.currentCircle = 'treachery';
+    applyCircleTheme('treachery');
+    saveListenStats();
+  }
+  // Show debug strip
+  if (elements.debugStrip) {
+    elements.debugStrip.classList.remove('hidden');
+  }
+  updateDebugStrip();
+  updateModeBasedUI();
+}
+
+/**
+ * Update debug strip with current state
+ */
+function updateDebugStrip() {
+  if (!state.adminMode || !elements.debugStrip) return;
+  if (elements.debugStripCircle) {
+    elements.debugStripCircle.textContent = state.currentCircle || 'limbo';
+  }
+  if (elements.debugStripHeard) {
+    elements.debugStripHeard.textContent = 'heard:' + state.totalUniqueHeard;
+  }
+  if (elements.debugStripScreen) {
+    elements.debugStripScreen.textContent = state.currentScreen;
+  }
+  if (elements.debugStripOnline) {
+    elements.debugStripOnline.textContent = navigator.onLine ? 'online' : 'offline';
+  }
+}
+
+/**
+ * Populate profile screen with current stats and sync status
+ */
+function populateProfile() {
+  const creds = getSyncCredentials();
+
+  // Username
+  if (elements.profileUsername) {
+    elements.profileUsername.textContent = creds ? creds.username.toUpperCase() : 'GUEST';
+  }
+
+  // Stats
+  if (elements.profileListenTime) {
+    elements.profileListenTime.textContent = formatListenTime(state.totalListenSeconds);
+  }
+  if (elements.profileHeard) {
+    const heard = state.heardTracks.size;
+    const total = state.tracks.length;
+    const pct = total > 0 ? Math.round((heard / total) * 100) : 0;
+    elements.profileHeard.textContent = `${heard} / ${total} (${pct}%)`;
+  }
+  if (elements.profileFavs) {
+    elements.profileFavs.textContent = state.favoriteTracks.size.toString();
+  }
+  if (elements.profileLastPlayed) {
+    if (state.lastPlayedAt) {
+      const d = new Date(state.lastPlayedAt);
+      elements.profileLastPlayed.textContent = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else {
+      elements.profileLastPlayed.textContent = '---';
+    }
+  }
+
+  // Circle progress
+  if (elements.circleProgress && elements.circleMarks) {
+    const currentCircle = state.currentCircle || getCurrentCircle(state.totalUniqueHeard).id;
+    const unlocked = getUnlockedCircles(state.totalUniqueHeard);
+    const unlockedIds = new Set(unlocked.map(c => c.id));
+
+    elements.circleMarks.innerHTML = CIRCLES.map(circle => {
+      const isUnlocked = unlockedIds.has(circle.id);
+      const isCurrent = circle.id === currentCircle;
+      const classes = ['circle-mark'];
+      if (isUnlocked) classes.push('unlocked');
+      if (isCurrent) classes.push('current');
+      return `<div class="${classes.join(' ')}" data-circle="${circle.id}" title="${circle.threshold} tracks"></div>`;
+    }).join('');
+
+    elements.circleProgress.classList.remove('hidden');
+
+    // Bind click handlers for unlocked marks
+    elements.circleMarks.querySelectorAll('.circle-mark.unlocked').forEach(mark => {
+      mark.addEventListener('click', () => {
+        const circleId = mark.dataset.circle;
+        state.currentCircle = circleId;
+        applyCircleTheme(circleId);
+        saveListenStats();
+        populateProfile(); // Re-render to update current highlight
+      });
+    });
+  }
+
+  // Sync section: show creds form or sync info
+  if (creds) {
+    // Connected — show sync info, hide creds form
+    if (elements.profileCreds) elements.profileCreds.classList.add('hidden');
+    if (elements.profileSyncInfo) elements.profileSyncInfo.classList.remove('hidden');
+
+    // Sync status
+    if (elements.profileSyncDot) {
+      elements.profileSyncDot.className = 'sync-status-dot';
+      elements.profileSyncDot.classList.add(state.lastSyncResult?.status === 'error' ? 'error' : 'connected');
+    }
+    if (elements.profileSyncStatus) {
+      if (state.lastSyncResult?.status === 'error') {
+        elements.profileSyncStatus.textContent = 'Sync error';
+      } else {
+        elements.profileSyncStatus.textContent = 'Connected';
+      }
+    }
+    if (elements.profileSyncDetail) {
+      if (state.lastSyncResult?.error) {
+        elements.profileSyncDetail.textContent = state.lastSyncResult.error;
+      } else if (state.lastSyncResult?.status === 'ok') {
+        elements.profileSyncDetail.textContent = 'Last sync: ' + new Date().toLocaleTimeString();
+      } else {
+        elements.profileSyncDetail.textContent = '';
+      }
+    }
+  } else {
+    // Not connected — show creds form, hide sync info
+    if (elements.profileCreds) elements.profileCreds.classList.remove('hidden');
+    if (elements.profileSyncInfo) elements.profileSyncInfo.classList.add('hidden');
+  }
+
+  // Show/hide sync actions based on connection state
+  if (elements.profileSyncBtn) {
+    elements.profileSyncBtn.textContent = 'SYNC NOW';
+  }
+  if (elements.profileDisconnectBtn) {
+    elements.profileDisconnectBtn.style.display = '';
+  }
+
+  // DEBUG: populate debug info
+  populateDebugInfo();
+  updateDebugStrip();
+}
+
+/** DEBUG: Remove before release */
+function populateDebugInfo() {
+  if (!elements.debugOutput) return;
+  const creds = getSyncCredentials();
+  const debug = {
+    credentials: creds ? { username: creds.username, hasPassword: !!creds.password } : null,
+    syncResult: state.lastSyncResult,
+    stats: {
+      totalListenSeconds: state.totalListenSeconds,
+      totalUniqueHeard: state.totalUniqueHeard,
+      lastPlayedAt: state.lastPlayedAt,
+      currentCircle: state.currentCircle
+    },
+    state: {
+      heardTracks: state.heardTracks.size,
+      favoriteTracks: state.favoriteTracks.size,
+      playHistory: state.playHistory.length,
+      historyIndex: state.historyIndex,
+      secretUnlocked: state.secretUnlocked,
+      currentScreen: state.currentScreen
+    },
+    localStorage: {
+      keys: Object.keys(localStorage).length,
+      estimatedSize: JSON.stringify(localStorage).length + ' chars'
+    },
+    network: { online: navigator.onLine },
+    serviceWorker: { controlled: !!navigator.serviceWorker?.controller }
+  };
+  elements.debugOutput.textContent = JSON.stringify(debug, null, 2);
+}
+
+
+/**
+ * Open the sync credentials modal
+ */
+function openSyncModal() {
+  if (!elements.syncModal) return;
+  // Reset form state
+  if (elements.syncModalUsername) elements.syncModalUsername.value = '';
+  if (elements.syncModalPassword) elements.syncModalPassword.value = '';
+  if (elements.syncModalError) {
+    elements.syncModalError.classList.add('hidden');
+    elements.syncModalError.classList.remove('success');
+    elements.syncModalError.textContent = '';
+  }
+  if (elements.syncModalSubmit) {
+    elements.syncModalSubmit.textContent = 'CONNECT';
+    elements.syncModalSubmit.classList.remove('syncing');
+  }
+  if (elements.syncUsernameCount) elements.syncUsernameCount.textContent = '0/20';
+  if (elements.syncPasswordCount) elements.syncPasswordCount.textContent = '0/20';
+  // Remove any invalid state
+  elements.syncModalUsername?.classList.remove('invalid');
+  elements.syncModalPassword?.classList.remove('invalid');
+  elements.syncUsernameCount?.classList.remove('at-limit');
+  elements.syncPasswordCount?.classList.remove('at-limit');
+
+  elements.syncModal.classList.remove('hidden');
+  // Focus username after animation
+  setTimeout(() => elements.syncModalUsername?.focus(), 100);
+}
+
+/**
+ * Close the sync credentials modal
+ */
+function closeSyncModal() {
+  if (elements.syncModal) elements.syncModal.classList.add('hidden');
+}
+
+/**
+ * Validate sync modal inputs. Returns error message or null.
+ */
+function validateSyncInputs(username, password) {
+  if (!username) return 'Username is required';
+  if (!password) return 'Password is required';
+  if (username.length > 20) return 'Username must be 20 characters or less';
+  if (password.length > 20) return 'Password must be 20 characters or less';
+  if (/\s/.test(username)) return 'Username cannot contain spaces';
+  return null;
+}
+
+/**
+ * Update character count display for an input
+ */
+function updateCharCount(input, countEl) {
+  if (!input || !countEl) return;
+  const len = input.value.length;
+  countEl.textContent = len + '/20';
+  countEl.classList.toggle('at-limit', len >= 20);
+}
+
+/**
+ * Setup sync modal event handlers
+ */
+function setupSyncModal() {
+  // Close handlers
+  if (elements.syncModalClose) {
+    elements.syncModalClose.addEventListener('click', closeSyncModal);
+  }
+  if (elements.syncModalBackdrop) {
+    elements.syncModalBackdrop.addEventListener('click', closeSyncModal);
+  }
+
+  // Character count updates
+  if (elements.syncModalUsername) {
+    elements.syncModalUsername.addEventListener('input', () => {
+      updateCharCount(elements.syncModalUsername, elements.syncUsernameCount);
+      elements.syncModalUsername.classList.remove('invalid');
+      if (elements.syncModalError) elements.syncModalError.classList.add('hidden');
+    });
+  }
+  if (elements.syncModalPassword) {
+    elements.syncModalPassword.addEventListener('input', () => {
+      updateCharCount(elements.syncModalPassword, elements.syncPasswordCount);
+      elements.syncModalPassword.classList.remove('invalid');
+      if (elements.syncModalError) elements.syncModalError.classList.add('hidden');
+    });
+  }
+
+  // Submit via Enter key
+  [elements.syncModalUsername, elements.syncModalPassword].forEach(input => {
+    if (input) {
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleSyncSubmit();
+        }
+      });
+    }
+  });
+
+  // Submit button
+  if (elements.syncModalSubmit) {
+    elements.syncModalSubmit.addEventListener('click', handleSyncSubmit);
+  }
+}
+
+/**
+ * Handle sync modal form submission
+ */
+async function handleSyncSubmit() {
+  const username = elements.syncModalUsername?.value?.trim();
+  const password = elements.syncModalPassword?.value;
+
+  // Validate
+  const error = validateSyncInputs(username, password);
+  if (error) {
+    if (elements.syncModalError) {
+      elements.syncModalError.textContent = error;
+      elements.syncModalError.classList.remove('hidden', 'success');
+    }
+    // Mark empty fields as invalid
+    if (!username) elements.syncModalUsername?.classList.add('invalid');
+    if (!password) elements.syncModalPassword?.classList.add('invalid');
+    return;
+  }
+
+  // Disable form during submit
+  if (elements.syncModalSubmit) {
+    elements.syncModalSubmit.classList.add('syncing');
+    elements.syncModalSubmit.textContent = 'CONNECTING...';
+  }
+
+  const result = await fullSync(username, password);
+  state.lastSyncResult = result;
+
+  if (result.status === 'ok') {
+    saveSyncCredentials(username, password);
+
+    // Show success briefly
+    if (elements.syncModalError) {
+      elements.syncModalError.textContent = 'Connected!';
+      elements.syncModalError.classList.remove('hidden');
+      elements.syncModalError.classList.add('success');
+    }
+    if (elements.syncModalSubmit) {
+      elements.syncModalSubmit.textContent = 'CONNECTED';
+    }
+
+    // Check for admin mode
+    if (await checkAdmin(username)) {
+      activateAdminMode();
+    }
+    if (result.pullResult?.details?.secretChanged) {
+      updateModeBasedUI();
+    }
+
+    // Close modal after brief success display
+    setTimeout(() => {
+      closeSyncModal();
+      populateProfile();
+    }, 800);
+  } else {
+    // Show error
+    if (elements.syncModalSubmit) {
+      elements.syncModalSubmit.classList.remove('syncing');
+      elements.syncModalSubmit.textContent = 'CONNECT';
+    }
+    if (elements.syncModalError) {
+      elements.syncModalError.textContent = result.error || 'Connection failed';
+      elements.syncModalError.classList.remove('hidden', 'success');
+    }
+  }
+}
+
+/**
  * Initialize the application
  */
 export function init() {
@@ -679,8 +1070,103 @@ export function init() {
   }
 
   // Sync favorites offline button
-  if (elements.syncBtn) {
-    elements.syncBtn.addEventListener('click', syncFavoritesCache);
+  if (elements.offlineCacheBtn) {
+    elements.offlineCacheBtn.addEventListener('click', syncFavoritesCache);
+  }
+
+  // Profile nav button — opens profile screen
+  if (elements.profileNavBtn) {
+    elements.profileNavBtn.addEventListener('click', () => {
+      populateProfile();
+      showScreen('profile-screen');
+    });
+  }
+
+  // Profile back button
+  if (elements.profileBackBtn) {
+    elements.profileBackBtn.addEventListener('click', () => {
+      showScreen('player-screen');
+    });
+  }
+
+  // Profile sync button — force sync (only visible when connected)
+  if (elements.profileSyncBtn) {
+    elements.profileSyncBtn.addEventListener('click', async () => {
+      const creds = getSyncCredentials();
+      if (!creds) return; // Shouldn't happen — button only visible when connected
+
+      elements.profileSyncBtn.classList.add('syncing');
+      elements.profileSyncBtn.textContent = 'SYNCING...';
+      if (elements.profileSyncDot) elements.profileSyncDot.className = 'sync-status-dot syncing';
+
+      const result = await fullSync(creds.username, creds.password);
+      state.lastSyncResult = result;
+
+      elements.profileSyncBtn.classList.remove('syncing');
+      populateProfile();
+
+      if (result.status === 'ok' && result.pullResult?.details?.secretChanged) {
+        updateModeBasedUI();
+      }
+    });
+  }
+
+  // Profile connect button — inline credential form
+  if (elements.profileConnectBtn) {
+    elements.profileConnectBtn.addEventListener('click', async () => {
+      const username = elements.profileCredsUsername?.value?.trim();
+      const password = elements.profileCredsPassword?.value;
+
+      if (!username || !password) return;
+
+      elements.profileConnectBtn.classList.add('syncing');
+      elements.profileConnectBtn.textContent = 'CONNECTING...';
+
+      const result = await fullSync(username, password);
+      state.lastSyncResult = result;
+
+      elements.profileConnectBtn.classList.remove('syncing');
+      elements.profileConnectBtn.textContent = 'CONNECT';
+
+      if (result.status === 'ok') {
+        saveSyncCredentials(username, password);
+        // Check for admin mode
+        if (await checkAdmin(username)) {
+          activateAdminMode();
+        }
+        if (result.pullResult?.details?.secretChanged) {
+          updateModeBasedUI();
+        }
+      } else {
+        // Show error inline — briefly flash the input border red
+        elements.profileCredsUsername.style.borderBottomColor = '#f87171';
+        elements.profileCredsPassword.style.borderBottomColor = '#f87171';
+        setTimeout(() => {
+          elements.profileCredsUsername.style.borderBottomColor = '';
+          elements.profileCredsPassword.style.borderBottomColor = '';
+        }, 2000);
+        return;
+      }
+
+      // Clear inputs
+      if (elements.profileCredsUsername) elements.profileCredsUsername.value = '';
+      if (elements.profileCredsPassword) elements.profileCredsPassword.value = '';
+
+      populateProfile();
+    });
+  }
+
+  // Profile disconnect button
+  if (elements.profileDisconnectBtn) {
+    elements.profileDisconnectBtn.addEventListener('click', () => {
+      if (!confirm('Disconnect sync? Your data stays on this device.')) return;
+      clearSyncCredentials();
+      state.lastSyncResult = null;
+      state.adminMode = false;
+      if (elements.debugStrip) elements.debugStrip.classList.add('hidden');
+      if (elements.debugMenu) elements.debugMenu.classList.add('hidden');
+      populateProfile();
+    });
   }
 
   // Repeat button
@@ -738,4 +1224,97 @@ export function init() {
     if (el) el.classList.toggle('hidden', !offline);
     filterTracks(state.searchQuery);
   });
+
+  // Auto-sync on load if credentials exist
+  const syncCreds = getSyncCredentials();
+  if (syncCreds) {
+    pullState(syncCreds.username, syncCreds.password).then(result => {
+      state.lastSyncResult = result;
+      if (result.status === 'merged' && result.details) {
+        if (result.details.secretChanged) {
+          updateModeBasedUI();
+        }
+        if (result.details.favoritesAdded > 0) {
+          if (typeof renderTrackList === 'function') renderTrackList();
+        }
+      }
+    }).catch(() => {});
+  }
+
+  // Activate admin mode if logged in as admin
+  const syncCredsAdmin = getSyncCredentials();
+  if (syncCredsAdmin) {
+    checkAdmin(syncCredsAdmin.username).then(isAdminUser => {
+      if (isAdminUser) activateAdminMode();
+    });
+  }
+
+  // Debug strip toggle
+  if (elements.debugStrip) {
+    elements.debugStrip.addEventListener('click', () => {
+      if (elements.debugMenu) {
+        elements.debugMenu.classList.toggle('hidden');
+      }
+    });
+  }
+
+  // Debug menu actions
+  if (elements.debugMenu) {
+    // Heard count buttons
+    elements.debugMenu.querySelectorAll('.debug-action[data-heard]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const value = parseInt(btn.dataset.heard);
+        state.totalUniqueHeard = value;
+        const circle = getCurrentCircle(value);
+        state.currentCircle = circle.id;
+        applyCircleTheme(circle.id);
+        saveListenStats();
+        updateDebugStrip();
+        populateProfile();
+      });
+    });
+
+    // Cash rain
+    const cashRainBtn = document.getElementById('debug-cash-rain');
+    if (cashRainBtn) {
+      cashRainBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showCashRain();
+        elements.debugMenu.classList.add('hidden');
+      });
+    }
+
+    // Force sync
+    const forceSyncBtn = document.getElementById('debug-force-sync');
+    if (forceSyncBtn) {
+      forceSyncBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const creds = getSyncCredentials();
+        if (creds) {
+          forceSyncBtn.textContent = 'SYNCING...';
+          const result = await fullSync(creds.username, creds.password);
+          state.lastSyncResult = result;
+          forceSyncBtn.textContent = result.status === 'ok' ? 'SYNCED!' : 'ERROR';
+          setTimeout(() => { forceSyncBtn.textContent = 'FORCE SYNC'; }, 1500);
+          updateDebugStrip();
+        }
+      });
+    }
+
+    // Toggle secret
+    const toggleSecretBtn = document.getElementById('debug-toggle-secret');
+    if (toggleSecretBtn) {
+      toggleSecretBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        state.secretUnlocked = !state.secretUnlocked;
+        state.mode = state.secretUnlocked ? MODES.SECRET : MODES.REGULAR;
+        setSecretUnlocked(state.secretUnlocked);
+        updateModeBasedUI();
+        toggleSecretBtn.textContent = state.secretUnlocked ? 'SECRET: ON' : 'SECRET: OFF';
+        setTimeout(() => { toggleSecretBtn.textContent = 'TOGGLE SECRET'; }, 1000);
+        updateDebugStrip();
+      });
+    }
+  }
 }

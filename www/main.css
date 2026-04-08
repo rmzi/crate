@@ -48,7 +48,17 @@ html {
 
 body {
   background-color: var(--bg);
-  background-image: none;
+  background-image:
+    radial-gradient(ellipse at 30% 20%, rgba(80, 0, 0, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(40, 0, 60, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at center, #1a1a1a 0%, #000 70%),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255,255,255,0.015) 2px,
+      rgba(255,255,255,0.015) 4px
+    );
   color: var(--fg);
   font-family: var(--font);
   font-size: 14px;
@@ -56,7 +66,53 @@ body {
   position: relative;
 }
 
-/* Background effects (customize for your theme) */
+/* Smoke background — colors driven by CSS custom properties for circle themes */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  inset: -50%;
+  pointer-events: none;
+  z-index: -1;
+}
+
+body::before {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 80%, var(--smoke-1, rgba(255,255,255,0.25)) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 80% 20%, var(--smoke-2, rgba(255,255,255,0.22)) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 60% at 50% 50%, var(--smoke-3, rgba(255,255,255,0.18)) 0%, transparent 40%);
+  animation: smoke1 12s ease-in-out infinite;
+  filter: blur(50px);
+}
+
+body::after {
+  background:
+    radial-gradient(ellipse 70% 55% at 70% 70%, var(--smoke-2, rgba(255,255,255,0.22)) 0%, transparent 45%),
+    radial-gradient(ellipse 55% 45% at 30% 30%, var(--smoke-3, rgba(255,255,255,0.18)) 0%, transparent 50%),
+    radial-gradient(ellipse 45% 70% at 60% 40%, var(--smoke-1, rgba(255,255,255,0.15)) 0%, transparent 40%);
+  animation: smoke2 15s ease-in-out infinite;
+  filter: blur(60px);
+}
+
+@keyframes smoke1 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.9; }
+  25% { transform: translate(8%, -5%) scale(1.1); opacity: 1; }
+  50% { transform: translate(-5%, 8%) scale(0.9); opacity: 0.7; }
+  75% { transform: translate(6%, 3%) scale(1.05); opacity: 1; }
+}
+
+@keyframes smoke2 {
+  0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 0.8; }
+  33% { transform: translate(-6%, 6%) scale(1.08) rotate(3deg); opacity: 1; }
+  66% { transform: translate(5%, -4%) scale(0.92) rotate(-2deg); opacity: 0.85; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  body::after {
+    animation: none;
+  }
+}
 
 #app {
   height: 100%;
@@ -95,7 +151,8 @@ body {
 
 .enter-content {
   position: fixed;
-  bottom: 30vh;
+  bottom: 20vh;
+  z-index: 11;
   left: 50%;
   transform: translateX(-50%);
   text-align: center;
@@ -174,6 +231,7 @@ body {
 #enter-btn.hidden {
   display: none;
 }
+
 
 /* Voice login container */
 .password-container {
@@ -363,6 +421,48 @@ body {
   display: block;
 }
 
+/* Cash Rain overlay — Konami reward */
+.cash-rain {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  overflow: hidden;
+  animation: cash-fade 4s ease-out forwards;
+  perspective: 1000px;
+}
+
+.cash-rain .bill {
+  position: absolute;
+  top: -120px;
+  width: var(--bill-width, 60px);
+  height: var(--bill-height, 25px);
+  background-image: var(--bill-img);
+  background-size: cover;
+  background-position: center;
+  transform-style: preserve-3d;
+  animation: fall-tumble var(--fall-duration, 2s) linear forwards;
+  animation-delay: var(--fall-delay, 0s);
+  opacity: var(--bill-opacity, 1);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+@keyframes fall-tumble {
+  0% {
+    transform: translateY(0) rotateZ(var(--start-rot, 0deg)) rotateX(0deg) rotateY(0deg);
+    opacity: var(--bill-opacity, 1);
+  }
+  100% {
+    transform: translateY(calc(100vh + 150px)) rotateZ(var(--spin-z, 360deg)) rotateX(var(--spin-x, 720deg)) rotateY(var(--spin-y, 540deg));
+    opacity: calc(var(--bill-opacity, 1) * 0.7);
+  }
+}
+
+@keyframes cash-fade {
+  0%, 60% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 /* Player Screen */
 .player-title {
   position: absolute;
@@ -404,6 +504,9 @@ body {
   height: var(--artwork-size);
   border: 2px solid var(--muted);
   flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
 }
 
 .artwork-image {
@@ -414,8 +517,21 @@ body {
   cursor: default;
 }
 
-.artwork-container.no-art {
+.artwork-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   display: none;
+  pointer-events: none;
+}
+
+.artwork-container.no-art .artwork-image {
+  display: none;
+}
+
+.artwork-container.no-art .artwork-canvas {
+  display: block;
 }
 
 /* Right side content wrapper - flows naturally on mobile */
@@ -489,15 +605,14 @@ body {
 }
 
 /* Artwork long-press hold feedback */
-.artwork-image.holding {
+.artwork-container.holding {
   opacity: 0.7;
-  transition: opacity 0.3s;
+  transition: opacity 0.15s ease;
 }
 
 /* Clickable metadata (super/secret modes) */
-.artwork-image.clickable {
+.artwork-container.clickable {
   cursor: pointer;
-  pointer-events: auto;
 }
 
 #artist, #album, #title, #year {
@@ -1605,6 +1720,7 @@ body {
   .enter-content {
     position: fixed;
     bottom: 20vh;
+  z-index: 11;
     left: 50%;
     transform: translateX(-50%);
     width: auto;
@@ -1899,4 +2015,596 @@ body {
     width: clamp(18px, 5vh, 24px) !important;
     height: clamp(18px, 5vh, 24px) !important;
   }
+}
+
+/* ============================================
+   State Sync UI
+   ============================================ */
+
+/* Sync button — two rotating arrows */
+.state-sync-btn {
+  position: relative;
+}
+
+.state-sync-btn svg {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.state-sync-btn:hover svg {
+  transform: rotate(30deg);
+}
+
+.state-sync-btn:active svg {
+  transform: rotate(180deg);
+  transition-duration: 0.15s;
+}
+
+/* Syncing state — continuous rotation */
+.state-sync-btn.syncing svg {
+  animation: sync-spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Connected indicator — green dot */
+.state-sync-btn.connected::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 6px;
+  height: 6px;
+  background: #4a4;
+  border: 1px solid var(--bg);
+}
+
+/* Success flash */
+.state-sync-btn.sync-success {
+  color: #4a4 !important;
+  border-color: #4a4 !important;
+  animation: sync-success-flash 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.state-sync-btn.sync-error {
+  color: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+
+@keyframes sync-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes sync-success-flash {
+  0%   { opacity: 1; transform: scale(1); }
+  50%  { opacity: 0.7; transform: scale(1.15); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Force sync button on favorites page — reuse state-sync-btn with a label */
+.sync-force-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+  margin-bottom: 10px;
+  opacity: 0;
+  transform: translateY(-10px);
+  animation: sync-force-bar-in 0.3s ease-out 0.2s both;
+}
+
+@keyframes sync-force-bar-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sync-force-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid var(--muted);
+  color: var(--muted);
+  font-family: 'Special Elite', cursive;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease-out;
+}
+
+.sync-force-btn:hover {
+  border-color: var(--fg);
+  color: var(--fg);
+}
+
+.sync-force-btn:active {
+  transform: scale(0.97);
+}
+
+.sync-force-btn svg {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sync-force-btn.syncing svg {
+  animation: sync-spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* ============================================
+   Profile Screen
+   ============================================ */
+#profile-screen {
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.profile-container {
+  width: 100%;
+  max-width: 400px;
+  padding: 60px 24px 40px;
+  margin: 0 auto;
+}
+
+.profile-back-btn {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 20;
+  background: transparent;
+  border: none;
+  color: var(--fg);
+  cursor: pointer;
+  padding: 8px;
+  transition: opacity 0.2s ease;
+}
+
+.profile-back-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.profile-back-btn:hover {
+  opacity: 0.7;
+}
+
+.profile-username {
+  font-family: var(--font);
+  font-size: clamp(36px, 8vw, 56px);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--fg);
+  margin: 0 0 32px 0;
+  text-transform: uppercase;
+}
+
+.profile-stats {
+  margin: 0 0 32px 0;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--muted);
+}
+
+.stat-row:first-child {
+  border-top: 1px solid var(--muted);
+}
+
+.stat-label {
+  font-family: var(--font);
+  font-size: 14px;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+}
+
+.stat-value {
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  color: var(--fg);
+  letter-spacing: 0.05em;
+}
+
+.profile-sync {
+  margin: 0 0 32px 0;
+}
+
+.sync-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px 0;
+}
+
+.sync-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex-shrink: 0;
+}
+
+.sync-status-dot.connected {
+  background: #4ade80;
+}
+
+.sync-status-dot.error {
+  background: #f87171;
+}
+
+.sync-status-dot.syncing {
+  background: #facc15;
+  animation: pulse-dot 1s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.sync-status-text {
+  font-family: var(--font);
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.sync-detail {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.profile-sync-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.profile-action-btn {
+  background: transparent;
+  border: 2px solid var(--fg);
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  flex: 1;
+}
+
+.profile-action-btn:hover {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.profile-action-btn:active {
+  transform: scale(0.97);
+}
+
+.profile-action-btn.danger {
+  border-color: #f87171;
+  color: #f87171;
+}
+
+.profile-action-btn.danger:hover {
+  background: #f87171;
+  color: var(--bg);
+}
+
+.profile-action-btn.syncing {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Circle progress marks */
+.circle-progress {
+  margin: 0 0 32px 0;
+}
+
+.circle-marks {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.circle-mark {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--muted);
+  background: transparent;
+  cursor: default;
+  transition: background 0.3s ease, border-color 0.3s ease, transform 0.15s ease;
+}
+
+.circle-mark.unlocked {
+  border-color: var(--fg);
+  cursor: pointer;
+}
+
+.circle-mark.unlocked:hover {
+  transform: scale(1.2);
+}
+
+.circle-mark.current {
+  background: var(--fg);
+  border-color: var(--fg);
+}
+
+/* Circle advancement pulse on profile nav button */
+.circle-advance {
+  animation: circle-pulse 2s ease-out forwards;
+}
+
+@keyframes circle-pulse {
+  0% { transform: scale(1); }
+  15% { transform: scale(1.3); filter: brightness(1.5); }
+  30% { transform: scale(1); }
+  45% { transform: scale(1.15); filter: brightness(1.3); }
+  60% { transform: scale(1); filter: brightness(1); }
+  100% { transform: scale(1); }
+}
+
+/* Credential form for unconnected users */
+.sync-heading {
+  font-family: var(--font);
+  font-size: 14px;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  margin: 0 0 16px 0;
+}
+
+.profile-input {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--muted);
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 16px;
+  letter-spacing: 0.05em;
+  padding: 12px 0;
+  margin: 0 0 16px 0;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.profile-input::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.profile-input:focus {
+  border-bottom-color: var(--fg);
+}
+
+.profile-creds .profile-action-btn {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* Sync credentials modal */
+.sync-modal-content {
+  max-width: 400px;
+  padding: 32px;
+  text-align: center;
+}
+
+.sync-modal-title {
+  font-family: var(--title-font);
+  font-size: 28px;
+  letter-spacing: 0.05em;
+  color: var(--fg);
+  margin: 0 0 8px 0;
+}
+
+.sync-modal-subtitle {
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0 0 24px 0;
+  letter-spacing: 0.05em;
+}
+
+.sync-modal-form {
+  text-align: left;
+}
+
+.sync-input-group {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.sync-modal-input {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--muted);
+  color: var(--fg);
+  font-family: var(--font);
+  font-size: 16px;
+  letter-spacing: 0.05em;
+  padding: 12px 40px 12px 0;
+  outline: none;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.sync-modal-input::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.sync-modal-input:focus {
+  border-bottom-color: var(--fg);
+}
+
+.sync-modal-input.invalid {
+  border-bottom-color: #f87171;
+}
+
+.sync-input-count {
+  position: absolute;
+  right: 0;
+  bottom: 14px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.sync-modal-input:focus ~ .sync-input-count {
+  opacity: 1;
+}
+
+.sync-input-count.at-limit {
+  color: #f87171;
+  opacity: 1;
+}
+
+.sync-modal-error {
+  font-family: var(--font);
+  font-size: 13px;
+  color: #f87171;
+  margin: 0 0 12px 0;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+.sync-modal-error.hidden {
+  display: none;
+}
+
+.sync-modal-error.success {
+  color: #4ade80;
+}
+
+.sync-modal-submit {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* DEBUG STYLES — REMOVE BEFORE RELEASE */
+.profile-debug {
+  margin-top: 40px;
+  border: 1px dashed var(--muted);
+  padding: 16px;
+  opacity: 0.7;
+}
+
+.debug-heading {
+  font-family: var(--font);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  margin: 0 0 12px 0;
+}
+
+.debug-output {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+/* END DEBUG STYLES */
+
+.sync-force-btn.sync-success {
+  border-color: #4a4;
+  color: #4a4;
+}
+
+/* ============================================
+   Admin Debug Strip
+   ============================================ */
+.debug-strip {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10000;
+  background: rgba(0, 255, 0, 0.1);
+  border-top: 1px solid rgba(0, 255, 0, 0.3);
+  padding: 4px 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  color: #0f0;
+  cursor: pointer;
+  user-select: none;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.debug-strip-info {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
+}
+
+.debug-sep {
+  opacity: 0.4;
+}
+
+.debug-menu {
+  position: fixed;
+  bottom: 24px;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.95);
+  border-top: 1px solid rgba(0, 255, 0, 0.3);
+  padding: 12px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.debug-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 6px;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.debug-action {
+  background: transparent;
+  border: 1px solid rgba(0, 255, 0, 0.4);
+  color: #0f0;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  padding: 8px 4px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.debug-action:hover {
+  background: rgba(0, 255, 0, 0.15);
+}
+
+.debug-action:active {
+  background: rgba(0, 255, 0, 0.3);
+}
+
+/* Shift mini-player up when debug strip is visible */
+.debug-strip:not(.hidden) ~ .mini-player {
+  bottom: 24px;
 }

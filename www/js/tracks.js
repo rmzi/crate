@@ -6,10 +6,12 @@
 import { state, isSecretMode, REPEAT_MODES } from './state.js';
 import { elements } from './elements.js';
 import { seededRandom, escapeHtml, getMediaUrl } from './utils.js';
-import { saveHeardTracks } from './storage.js';
+import { saveHeardTracks, saveListenStats } from './storage.js';
+import { debouncedPush } from './sync.js';
 import { trackEvent } from './analytics.js';
 import { showAuthError } from './ui.js';
 import { networkState, isTrackCached } from './pwa.js';
+import { checkCircleAdvancement, applyCircleTheme } from './circles.js';
 
 // Forward declaration for renderTrackList callback
 let updateCatalogProgressFn = null;
@@ -82,6 +84,7 @@ export function getNextTrack() {
         // Clear only album track IDs from heardTracks, then loop
         pool.forEach(t => state.heardTracks.delete(t.id));
         saveHeardTracks();
+        debouncedPush();
         return pool[seededRandom(pool.length)];
       }
       return unheard[seededRandom(unheard.length)];
@@ -94,6 +97,7 @@ export function getNextTrack() {
   if (unheard.length === 0) {
     state.heardTracks.clear();
     saveHeardTracks();
+    debouncedPush();
     return pool[seededRandom(pool.length)];
   }
 
@@ -105,8 +109,30 @@ export function getNextTrack() {
  * @param {string} trackId - Track ID
  */
 export function markTrackHeard(trackId) {
+  // Track cumulative unique heard (doesn't reset like heardTracks)
+  const wasNew = !state.heardTracks.has(trackId);
+  if (wasNew) {
+    const prevHeard = state.totalUniqueHeard;
+    state.totalUniqueHeard++;
+
+    // Check for circle advancement
+    const newCircle = checkCircleAdvancement(prevHeard, state.totalUniqueHeard);
+    if (newCircle) {
+      state.currentCircle = newCircle.id;
+      applyCircleTheme(newCircle.id);
+      saveListenStats();
+      // Pulse the profile nav button
+      if (elements.profileNavBtn) {
+        elements.profileNavBtn.classList.add('circle-advance');
+        setTimeout(() => {
+          elements.profileNavBtn.classList.remove('circle-advance');
+        }, 2000);
+      }
+    }
+  }
   state.heardTracks.add(trackId);
   saveHeardTracks();
+  debouncedPush();
   if (updateCatalogProgressFn) {
     updateCatalogProgressFn();
   }
